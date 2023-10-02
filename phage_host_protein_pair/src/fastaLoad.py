@@ -19,14 +19,14 @@ class Header():
             self.tags = [tag.strip('[]') for tag in self.tags]
             
             # Populate header_dict
-            self.header_dict['seqID'] = self.id
+            self.header_dict['seqID_phage'] = self.id
             for tag in self.tags:
                 tag = tag.split('=')
                 self.header_dict[tag[0]] = tag[1]
 
         elif self.organism == 'k12':
             parts = self.header_str.split()
-            self.header_dict['seqID'] = parts[0]
+            self.header_dict['seqID_k12'] = parts[0]
 
             current_tag = None
 
