@@ -26,7 +26,7 @@ class Header():
 
         elif self.organism == 'k12':
             parts = self.header_str.split()
-            self.header_dict['id'] = parts[0]
+            self.header_dict['seqID'] = parts[0]
 
             current_tag = None
 
