@@ -25,29 +25,22 @@ class Header():
                 self.header_dict[tag[0]] = tag[1]
 
         elif self.organism == 'k12':
-            # Define a function that takes a string as an argument and returns a dictionary
-            def parse_string(string):
-                # Split the string by spaces
-                parts = string.split()
-                # Initialize an empty dictionary
-                header_dict = {}
-                # Loop through the parts of the string
-                for part in parts:
-                    # If the part contains an equal sign, split it by the equal sign and assign the key and value to the dictionary
-                    if "=" in part:
-                        key, value = part.split("=")
-                        header_dict[key] = value
-                    # Else, check if the part is the first one, which is the id
-                    elif part == parts[0]:
-                        header_dict["id"] = part
-                    # Else, assume the part is the name and append it to the dictionary with the key "name"
-                    else:
-                        header_dict["name"] = header_dict.get("name", "") + part + " "
-                # Return the dictionary
-                return header_dict
-            
-            # Adapt previous function to the method
-            self.header_dict = parse_string(self.header_str)
+            parts = self.header_str.split()
+            self.header_dict['id'] = parts[0]
+
+            current_tag = None
+
+            for part in parts[1:]:
+                if '=' in part:
+                    key, value = part.split('=')
+                    self.header_dict[key] = value
+                    current_tag = key
+                
+                elif current_tag:
+                    self.header_dict[current_tag] += ' ' + part
+
+                else:
+                    self.header_dict['name'] = self.header_dict.get('name', '') + part + ' '
 
         else:
             raise ValueError(f'Invalid organism: {self.organism}')
