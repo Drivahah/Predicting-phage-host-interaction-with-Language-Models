@@ -1,31 +1,62 @@
 import pandas as pd
 
 class Header():
-    def __init__(self, header=''):
+    def __init__(self, header='', organism='phage'):
         self.header_str = str(header)
         self.header_dict = dict()
+
+        organism = organism.lower()
 
         if self.header_str != '':
             self.read_header()
             self.make_df()
     
     def read_header(self):
-        self.id, self.tags = self.header_str.split(' ', 1)
-        self.tags = self.tags.split('] [')
-        self.tags = [tag.strip('[]') for tag in self.tags]
+        if organism == 'phage':
+            self.id, self.tags = self.header_str.split(' ', 1)
+            self.tags = self.tags.split('] [')
+            self.tags = [tag.strip('[]') for tag in self.tags]
             
-        # Populate header_dict
-        self.header_dict['seqID'] = self.id
-        for tag in self.tags:
-            tag = tag.split('=')
-            self.header_dict[tag[0]] = tag[1]
+            # Populate header_dict
+            self.header_dict['seqID'] = self.id
+            for tag in self.tags:
+                tag = tag.split('=')
+                self.header_dict[tag[0]] = tag[1]
+
+        elif organism == 'k12':
+            # Define a function that takes a string as an argument and returns a dictionary
+            def parse_string(string):
+                # Split the string by spaces
+                parts = string.split()
+                # Initialize an empty dictionary
+                header_dict = {}
+                # Loop through the parts of the string
+                for part in parts:
+                    # If the part contains an equal sign, split it by the equal sign and assign the key and value to the dictionary
+                    if "=" in part:
+                        key, value = part.split("=")
+                        header_dict[key] = value
+                    # Else, check if the part is the first one, which is the id
+                    elif part == parts[0]:
+                        header_dict["id"] = part
+                    # Else, assume the part is the name and append it to the dictionary with the key "name"
+                    else:
+                        header_dict["name"] = header_dict.get("name", "") + part + " "
+                # Return the dictionary
+                return header_dict
+            
+            # Adapt previous function to the method
+            self.header_dict = parse_string(self.header_str)
+
+        else:
+            raise ValueError(f'Invalid organism: {organism}')
 
     def make_df(self):
         self.df = pd.DataFrame(self.header_dict, index=[0])
 
 
 class Entry():
-    def __init__(self, entry):
+    def __init__(self, entry, organism):
         self.entry_str = str(entry)
         self.sequence = str()
 
@@ -34,7 +65,7 @@ class Entry():
 
     def read_entry(self):
         self.entry_list = self.entry_str.split('\n', 1)
-        self.header = Header(self.entry_list[0])
+        self.header = Header(self.entry_list[0], organism)
         try:
             self.sequence = self.entry_list[1].replace('\n', '')
         except IndexError:
@@ -53,7 +84,7 @@ class Entry():
         self.df['sequence'] = self.sequence
 
 class fasta():
-    def __init__(self, file):
+    def __init__(self, file, organism):
         self.file_path = file
         self.entries = list()
 
@@ -66,7 +97,7 @@ class fasta():
         self.fasta_list[0] = self.fasta_list[0].strip('>')
         
         for entry in self.fasta_list:
-            self.entries.append(Entry(entry))
+            self.entries.append(Entry(entry, organism))
 
     def make_df(self):
         self.df = pd.concat([entry.df for entry in self.entries])
