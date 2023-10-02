@@ -2,6 +2,7 @@ import pandas as pd
 
 class Header():
     def __init__(self, header='', organism='phage'):
+        self.organism = organism
         self.header_str = str(header)
         self.header_dict = dict()
 
@@ -12,7 +13,7 @@ class Header():
             self.make_df()
     
     def read_header(self):
-        if organism == 'phage':
+        if self.organism == 'phage':
             self.id, self.tags = self.header_str.split(' ', 1)
             self.tags = self.tags.split('] [')
             self.tags = [tag.strip('[]') for tag in self.tags]
@@ -23,7 +24,7 @@ class Header():
                 tag = tag.split('=')
                 self.header_dict[tag[0]] = tag[1]
 
-        elif organism == 'k12':
+        elif self.organism == 'k12':
             # Define a function that takes a string as an argument and returns a dictionary
             def parse_string(string):
                 # Split the string by spaces
@@ -49,7 +50,7 @@ class Header():
             self.header_dict = parse_string(self.header_str)
 
         else:
-            raise ValueError(f'Invalid organism: {organism}')
+            raise ValueError(f'Invalid organism: {self.organism}')
 
     def make_df(self):
         self.df = pd.DataFrame(self.header_dict, index=[0])
@@ -57,6 +58,7 @@ class Header():
 
 class Entry():
     def __init__(self, entry, organism):
+        self.organism = organism
         self.entry_str = str(entry)
         self.sequence = str()
 
@@ -65,7 +67,7 @@ class Entry():
 
     def read_entry(self):
         self.entry_list = self.entry_str.split('\n', 1)
-        self.header = Header(self.entry_list[0], organism)
+        self.header = Header(self.entry_list[0], self.organism)
         try:
             self.sequence = self.entry_list[1].replace('\n', '')
         except IndexError:
@@ -85,6 +87,7 @@ class Entry():
 
 class fasta():
     def __init__(self, file, organism):
+        self.organism = organism
         self.file_path = file
         self.entries = list()
 
@@ -97,7 +100,7 @@ class fasta():
         self.fasta_list[0] = self.fasta_list[0].strip('>')
         
         for entry in self.fasta_list:
-            self.entries.append(Entry(entry, organism))
+            self.entries.append(Entry(entry, self.organism))
 
     def make_df(self):
         self.df = pd.concat([entry.df for entry in self.entries])
