@@ -1,31 +1,57 @@
 import pandas as pd
 
 class Header():
-    def __init__(self, header=''):
+    def __init__(self, header='', organism='phage'):
+        self.organism = organism
         self.header_str = str(header)
         self.header_dict = dict()
+
+        organism = organism.lower()
 
         if self.header_str != '':
             self.read_header()
             self.make_df()
     
     def read_header(self):
-        self.id, self.tags = self.header_str.split(' ', 1)
-        self.tags = self.tags.split('] [')
-        self.tags = [tag.strip('[]') for tag in self.tags]
+        if self.organism == 'phage':
+            self.id, self.tags = self.header_str.split(' ', 1)
+            self.tags = self.tags.split('] [')
+            self.tags = [tag.strip('[]') for tag in self.tags]
             
-        # Populate header_dict
-        self.header_dict['seqID'] = self.id
-        for tag in self.tags:
-            tag = tag.split('=')
-            self.header_dict[tag[0]] = tag[1]
+            # Populate header_dict
+            self.header_dict['seqID'] = self.id
+            for tag in self.tags:
+                tag = tag.split('=')
+                self.header_dict[tag[0]] = tag[1]
+
+        elif self.organism == 'k12':
+            parts = self.header_str.split()
+            self.header_dict['id'] = parts[0]
+
+            current_tag = None
+
+            for part in parts[1:]:
+                if '=' in part:
+                    key, value = part.split('=')
+                    self.header_dict[key] = value
+                    current_tag = key
+                
+                elif current_tag:
+                    self.header_dict[current_tag] += ' ' + part
+
+                else:
+                    self.header_dict['name'] = self.header_dict.get('name', '') + part + ' '
+
+        else:
+            raise ValueError(f'Invalid organism: {self.organism}')
 
     def make_df(self):
         self.df = pd.DataFrame(self.header_dict, index=[0])
 
 
 class Entry():
-    def __init__(self, entry):
+    def __init__(self, entry, organism):
+        self.organism = organism
         self.entry_str = str(entry)
         self.sequence = str()
 
@@ -34,7 +60,7 @@ class Entry():
 
     def read_entry(self):
         self.entry_list = self.entry_str.split('\n', 1)
-        self.header = Header(self.entry_list[0])
+        self.header = Header(self.entry_list[0], self.organism)
         try:
             self.sequence = self.entry_list[1].replace('\n', '')
         except IndexError:
@@ -53,7 +79,8 @@ class Entry():
         self.df['sequence'] = self.sequence
 
 class fasta():
-    def __init__(self, file):
+    def __init__(self, file, organism):
+        self.organism = organism
         self.file_path = file
         self.entries = list()
 
@@ -66,7 +93,7 @@ class fasta():
         self.fasta_list[0] = self.fasta_list[0].strip('>')
         
         for entry in self.fasta_list:
-            self.entries.append(Entry(entry))
+            self.entries.append(Entry(entry, self.organism))
 
     def make_df(self):
         self.df = pd.concat([entry.df for entry in self.entries])
