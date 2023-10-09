@@ -1,0 +1,79 @@
+﻿Bas##;morphotype;closest relative (BLASTN total score);ICTV genus;Phage (name);primary receptor;terminal receptor;receptor
+Bas01;siphovirus;RTP (AM156909.1);Rtpvirus;Escherichia phage AugustePiccard;LPS / O-antigen?;LptD;n.a.
+Bas02;siphovirus;CEB_EC3a (NC_047812.1);Guelphvirus;Escherichia phage JeanPiccard;LPS / O-antigen?;LptD;n.a.
+Bas03;siphovirus;CEB_EC3a (NC_047812.1);Guelphvirus;Escherichia phage JulesPiccard;LPS / O-antigen?;FhuA;n.a.
+Bas04;siphovirus;tonnikala (NC_049817.1);Warwickvirus;Escherichia phage FritzSarasin;LPS / O-antigen?;BtuB;n.a.
+Bas05;siphovirus;XY3 (MN781674.1);Warwickvirus;Escherichia phage PeterMerian;LPS / O-antigen?;FhuA;n.a.
+Bas06;siphovirus;herni (NC_049823.1);Hanrivervirus;Escherichia phage KarlJaspers;LPS / O-antigen?;BtuB;n.a.
+Bas07;siphovirus;PGN590 (NC_049830.1);Hanrivervirus;Escherichia phage JakobBernoulli;LPS / O-antigen?;FhuA;n.a.
+Bas08;siphovirus;TLS (AY308796.1);Tlsvirus;Escherichia phage DanielBernoulli;LPS / O-antigen?;TolC;n.a.
+Bas09;siphovirus;W011D (MK778457.1);Changchunvirus;Escherichia phage PaulSarasin;LPS / O-antigen?;FhuA;n.a.
+Bas10;siphovirus;Henu7 (MN019128.1);unclassified;Escherichia phage IsaakIselin;LPS / O-antigen?;YncD;n.a.
+Bas11;siphovirus;Henu7 (MN019128.1);unclassified;Escherichia phage JohannLBurckhardt;LPS / O-antigen?;YncD;n.a.
+Bas12;siphovirus;SRT8 (NC_042043.1);Sertoctavirus;Escherichia phage BrunoManser;LPS / O-antigen?;FhuA;n.a.
+Bas13;siphovirus;phi2013 (MT427400.1);Tunavirus;Escherichia phage LeonhardEuler;LPS / O-antigen?;FhuA;n.a.
+Bas14;siphovirus;Sodalis SO-1 (GQ502199.1);Dhillonvirus;Escherichia phage TheodorHerzl;LPS / O-antigen?;LptD;n.a.
+Bas15;siphovirus;PTXU06 (MK373789.1);Dhillonvirus;Escherichia phage PaulFeyerabend;LPS / O-antigen?;FhuA;n.a.
+Bas16;siphovirus;PTXU06 (MK373789.1);Dhillonvirus;Escherichia phage GeorgBuechner;LPS / O-antigen?;FhuA;n.a.
+Bas17;siphovirus;PTXU06 (MK373789.1);Dhillonvirus;Escherichia phage KarlBarth;LPS / O-antigen?;FhuA;n.a.
+Bas18;siphovirus;slur06 (LN881731.1);Dhillonvirus;Escherichia phage Oekolampad;LPS / O-antigen?;LptD;n.a.
+Bas19;siphovirus;SP8 (MT682705.1);Nonagvirus;Escherichia phage ChristophMerian;LPS / O-antigen?;LptD;n.a.
+Bas20;siphovirus;HdSG1 (MK373795.1);Nonagvirus;Escherichia phage FritzHoffmann;LPS / O-antigen?;LptD;n.a.
+Bas21;siphovirus;SLUR25 (LT907986.1);Seuratvirus;Escherichia phage GottfriedDienst;LPS / O-antigen?;LamB;n.a.
+Bas22;siphovirus;SLUR75 (R025197.1);Seuratvirus;Escherichia phage KurtStettler;LPS / O-antigen?;LamB;n.a.
+Bas23;siphovirus;SLUR75 (R025197.1);Seuratvirus;Escherichia phage WildeMaa;LPS / O-antigen?;LamB;n.a.
+Bas24;siphovirus;SLUR75 (R025197.1);Seuratvirus;Escherichia phage SeppeHuegi;LPS / O-antigen?;LamB;n.a.
+Bas25;siphovirus;Aeromonas DO4 (MH230177.1);Seuratvirus;Escherichia phage VogelGryff;LPS / O-antigen?;LptD;n.a.
+Bas26;siphovirus;100268_sal2 (KU927497.2);Eseptimavirus;Escherichia phage GreteKellenberger;LPS / O-antigen;BtuB;n.a.
+Bas27;siphovirus;SB9 (MK867835.1);Eseptimavirus;Escherichia phage TrudiGerster;LPS / O-antigen;BtuB;n.a.
+Bas28;siphovirus;Ace (MT833283.1);Eseptimavirus;Escherichia phage IrmaTschudi;LPS / O-antigen;BtuB;n.a.
+Bas29;siphovirus;EASG3 (MK373799.1);Eseptimavirus;Escherichia phage SuperGirl;LPS / O-antigen;BtuB;n.a.
+Bas30;siphovirus;100268_sal2 (KU927497.2);Eseptimavirus;Escherichia phage TrudiRoth;LPS / O-antigen;BtuB;n.a.
+Bas31;siphovirus;pork29 (MF431732.1);Tequintavirus;Escherichia phage DaisyDussoix;LPS / O-antigen;BtuB;n.a.
+Bas32;siphovirus;saus111K (MF431734.1);Tequintavirus;Escherichia phage IrisVonRoten;LPS / O-antigen;BtuB;n.a.
+Bas33;siphovirus;SSP1 (NC_047881.1);Tequintavirus;Escherichia phage HildyBeyeler;LPS / O-antigen;BtuB;n.a.
+Bas34;siphovirus;NBEco002 (NC_048855.1);Tequintavirus;Escherichia phage SelmaRatti;LPS / O-antigen;BtuB;n.a.
+Bas35;myovirus;G29-2 (MK327940.1);Tequatrovirus;Escherichia phage WilhelmHis;Tsx;LPS (deep core);n.a.
+Bas36;myovirus;O157 typing phage 7 (KP869105.1);Tequatrovirus;Escherichia phage Paracelsus;Tsx;LPS (deep core);n.a.
+Bas37;myovirus;JK08 (LR877332.1);Tequatrovirus;Escherichia phage KarlGJung;Tsx;LPS (deep core);n.a.
+Bas38;myovirus;OE5505 (MK373785.1);Tequatrovirus;Escherichia phage AugustSocin;OmpF;LPS (deep core);n.a.
+Bas39;myovirus;R5505 (MK373786.1);Tequatrovirus;Escherichia phage FriedrichMiescher;Tsx;LPS (deep core);n.a.
+Bas40;myovirus;O157 typing phage 7 (KP869105.1);Tequatrovirus;Escherichia phage FelixPlatter;OmpC;LPS (deep core);n.a.
+Bas41;myovirus;teqhad (MN895434.1);Tequatrovirus;Escherichia phage FriedrichZschokke;OmpC;LPS (deep core);n.a.
+Bas42;myovirus;Sf23 (MF158046.1);Tequatrovirus;Escherichia phage AndreasVesalius;OmpC;LPS (deep core);n.a.
+Bas43;myovirus;RB18 (MH553563.1);Tequatrovirus;Escherichia phage TadeuszReichstein;Tsx;LPS (deep core);n.a.
+Bas44;myovirus;R5505 (MK373786.1);Tequatrovirus;Escherichia phage AdolfPortmann;OmpC;LPS (deep core);n.a.
+Bas45;myovirus;R5505 (MK373786.1);Tequatrovirus;Escherichia phage PaulHMueller;OmpA;LPS (deep core);n.a.
+Bas46;myovirus;PhAPEC2 (KF562341.1);Mosigvirus;Escherichia phage ChristianSchoenbein;OmpF;LPS (deep core);n.a.
+Bas47;myovirus;Shf125875 (KM407600.1);Mosigvirus;Escherichia phage AlbertHofmann;OmpF;LPS (deep core);n.a.
+Bas48;myovirus;pangalan (MN850627.1);Vequintavirus;Escherichia phage CarlMeissner;ECA?;first Glc of LPS outer core;n.a.
+Bas49;myovirus;O157 typing phage 5 (KP869103.1);Vequintavirus;Escherichia phage EmilHeitz;ECA?;first Glc of LPS outer core;n.a.
+Bas50;myovirus;O157 typing phage 5 (KP869103.1);Vequintavirus;Escherichia phage DrSchubert;ECA?;first Glc of LPS outer core;n.a.
+Bas51;myovirus;O157 typing phage 5 (KP869103.1);Vequintavirus;Escherichia phage WalterGehring;ECA?;first Glc of LPS outer core;n.a.
+Bas52;myovirus;bov10K2 (MT884008.2);Vequintavirus;Escherichia phage RudolfGeigy;ECA?;first Glc of LPS outer core;n.a.
+Bas53;myovirus;bov10K2 (MT884008.2);Vequintavirus;Escherichia phage JohannBauhin;ECA?;first Glc of LPS outer core;n.a.
+Bas54;myovirus;bov25_3 (MT884011.2);Vequintavirus;Escherichia phage MaxBurger;ECA?;first Glc of LPS outer core;n.a.
+Bas55;myovirus;nomine (MN850649.1);Vequintavirus;Escherichia phage JeffSchatz;ECA?;first Glc of LPS outer core;n.a.
+Bas56;myovirus;isim (MN850597.1);Vequintavirus;Escherichia phage AlexBoehm;ECA?;first Glc of LPS outer core;n.a.
+Bas57;myovirus;isim (MN850597.1);Vequintavirus;Escherichia phage MaxTheCat;ECA?;first Glc of LPS outer core;n.a.
+Bas58;myovirus;CM1 (MK962749.1);Vequintavirus;Escherichia phage HeinrichReichert;ECA?;first Glc of LPS outer core;n.a.
+Bas59;myovirus;CM1 (MK962749.1);Vequintavirus;Escherichia phage EduardKellenberger;ECA?;first Glc of LPS outer core;n.a.
+Bas60;myovirus;alia (MN850632.1);unclassified;Escherichia phage PaulScherrer;ECA;first Glc of LPS outer core;n.a.
+Bas61;myovirus;outra (MN850645.1);unclassified;Escherichia phage EmilieFrey;ECA;first Glc of LPS outer core;n.a.
+Bas62;myovirus;alia (MN850632.1);unclassified;Escherichia phage JohannJBalmer;ECA;first Glc of LPS outer core;n.a.
+Bas63;myovirus;LMP33 (MK482689.1);Felixounavirus;Escherichia phage JohannRWettstein;n.a.;n.a.;rough LPS
+Bas64;podovirus;PHB20 (MN481366.1);Teseptimavirus;Escherichia phage JeanTinguely;n.a.;n.a.;rough LPS
+Bas65;podovirus;T7 (AY264774.1);Teseptimavirus;Escherichia phage JacobBurckhardt;n.a.;n.a.;rough LPS
+Bas66;podovirus;n.a.;Teetrevirus;Escherichia phage T3K12;n.a.;n.a.;rough LPS
+Bas67;podovirus;PhiV-1 (MT542512.1);Berlinvirus;Escherichia phage ErnstBeyeler;n.a.;n.a.;rough LPS
+Bas68;podovirus;PhiV-1 (MT542512.1);Berlinvirus;Escherichia phage CarlSpitteler;n.a.;n.a.;rough LPS
+Bas69;podovirus;PMBT57 (MG770228.1);Enquatrovirus;Escherichia phage AlfredRasser;ECA;NfrA?;n.a.
+n.a.;siphovirus;n.a.;Tequintavirus;Escherichia phage T5 (reference);LPS / O-antigen;FhuA;n.a.
+n.a.;myovirus;n.a.;Tequatrovirus;Escherichia phage T2 (reference);FadL;LPS (deep core);n.a.
+n.a.;myovirus;n.a.;Tequatrovirus;Escherichia phage T4D (reference);OmpC;LPS (deep core);n.a.
+n.a.;myovirus;n.a.;Tequatrovirus;Escherichia phage T6 (reference);Tsx;LPS (deep core);n.a.
+n.a.;podovirus;n.a.;Teseptimavirus;Escherichia phage T7 (reference);n.a.;n.a.;rough LPS
+n.a.;podovirus;n.a.;Enquatrovirus;Escherichia phage N4 (reference);ECA;NfrA?;n.a.
+n.a.;siphovirus;n.a.;Lambdavirus;Escherichia phage lambdavir (reference);none;LamB;n.a.
+n.a.;myovirus;n.a.;Punavirus;Escherichia phage P1vir (reference);n.a.;n.a.;rough LPS
+n.a.;myovirus;n.a.;Peduovirus;Escherichia phage P2vir (reference);n.a.;n.a.;rough LPS
