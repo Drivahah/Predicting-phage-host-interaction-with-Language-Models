@@ -92,5 +92,14 @@ data/external/
 
 # Virtual environment
 ./PH/
-
 PH/
+
+# .err and .out logs
+*.err
+*.out
+
+# bash jobs
+*.sh
+
+# Converted notebooks for the command line
+/notebooks/*.nbconvert.ipynb
