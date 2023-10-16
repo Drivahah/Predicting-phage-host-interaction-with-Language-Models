@@ -89,3 +89,8 @@ data/external/
 
 # Mypy cache
 .mypy_cache/
+
+# Virtual environment
+./PH/
+
+PH/
