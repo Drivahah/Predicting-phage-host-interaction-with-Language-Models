@@ -103,3 +103,6 @@ PH/
 
 # Converted notebooks for the command line
 /notebooks/*.nbconvert.ipynb
+
+# End of notebook test
+/notebooks/*test.txt
