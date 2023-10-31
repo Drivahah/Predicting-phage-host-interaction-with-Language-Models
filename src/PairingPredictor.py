@@ -1,9 +1,9 @@
 class PairingPredictor():
     def __init__(self, protein_pairs):
         # Import pandas and torch if not imported
-        if 'pd' not in globals():
+        if 'pd' not in sys.modules():
             import pandas as pd
-        if 'torch' not in globals():
+        if 'torch' not in sys.modules():
             import torch
 
         # Parameters
@@ -103,9 +103,9 @@ class PairingPredictor():
         
         if self.models_config['embedder'] == 't5_xl_u50':
             # Import T5Tokenizer, T5EncoderModel from transformers if not imported
-            if 'T5Tokenizer' not in globals():
+            if 'T5Tokenizer' not in sys.modules():
                 from transformers import T5Tokenizer
-            if 'T5EncoderModel' not in globals():
+            if 'T5EncoderModel' not in sys.modules():
                 from transformers import T5EncoderModel
 
             # Load T5 tokenizer and model if self.tokenizer and self.embedder are not defined
@@ -118,7 +118,7 @@ class PairingPredictor():
 
     def embed_pairs(self):
         # import time if not imported
-        if 'time' not in globals():
+        if 'time' not in sys.modules():
             import time
 
         # Check that input has been loaded
@@ -136,7 +136,7 @@ class PairingPredictor():
 
     def embed(self, organism: str):
         # import re and numpy if not imported
-        if 're' not in globals():
+        if 're' not in sys.modules():
             import re
 
         # Check that organism is a valid organism
