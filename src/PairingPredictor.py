@@ -1,7 +1,7 @@
 class PairingPredictor():
     def __init__(self, protein_pairs):
         # Import pandas and torch if not imported
-        if 'pd' not in sys.modules():
+        if 'pandas' not in sys.modules():
             import pandas as pd
         if 'torch' not in sys.modules():
             import torch
