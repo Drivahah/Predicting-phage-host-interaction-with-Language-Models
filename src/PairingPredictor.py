@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import torch
 import re
 import time
@@ -174,6 +175,49 @@ class PairingPredictor():
                     if self.actions['per_protein']: # apply average-pooling to derive per-protein embeddings (1024-d)
                         protein_emb = emb.mean(dim=0)
                         self.embedded_proteins[organism]["protein_embs"].append(protein_emb.detach().cpu().numpy().squeeze())
+
+    def concatenate_embeddings(self):
+        # Check that embedded_proteins has been loaded
+        if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
+            raise ValueError('embedded_proteins has not been loaded')
+
+        # Concatenate phage and bacteria per residue and per protein embeddings 
+        # depending on the actions
+        start = time.time()
+
+        if self.actions['per_residue']:
+            self.concatenate('residue_embs')
+        if self.actions['per_protein']:
+            self.concatenate('protein_embs')
+
+        end = time.time()
+        print(f'Concatenation time: {end - start} seconds')
+
+    def concatenate(self, embedding_type: str, separator = 300000, overwrite=False):
+        # Check that embedding_type is a valid embedding_type
+        if embedding_type not in self.embedded_proteins['phage'].keys():
+            raise ValueError('embedding_type must be either "residue_embs" or "protein_embs"')
+        
+        # Check that embedded_proteins['paired'] is empty
+        if not overwrite and self.embedded_proteins['paired']:
+            raise ValueError('embedded_proteins["paired"] is not empty. Set overwrite to True to overwrite it')
+
+        # Check that phage and bacteria embeddings have the same number of elements
+        if len(self.embedded_proteins['phage'][embedding_type]) != len(self.embedded_proteins['bacteria'][embedding_type]):
+            raise ValueError('phage and bacteria embeddings must have the same number of elements')
+
+        # Only flattened_residue_embs should be concatenated, not the 2D residue_embs
+        if embedding_type == 'residue_embs':
+            embedding_type = 'flattened_residue_embs'
+
+        # Concatenate phage and bacteria embeddings
+        # Note: separator set to 300000 because it is out of the range of T5 embeddings values
+        #       and it should help the model distinguish the two proteins
+        self.embedded_proteins['paired'][embedding_type] = []
+        for i in range(len(self.embedded_proteins['phage'][embedding_type])):
+            phage = self.embedded_proteins['phage'][embedding_type][i]
+            bacteria = self.embedded_proteins['bacteria'][embedding_type][i]
+            self.embedded_proteins['paired'][embedding_type].append(np.concatenate((phage, separator, bacteria)))
 
     def save_log(self, file_path: str):
         # Save parameters and embedded proteins in a txt file
