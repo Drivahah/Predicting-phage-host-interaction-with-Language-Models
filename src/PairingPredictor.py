@@ -44,8 +44,8 @@ class PairingPredictor():
         }
         self.input['phage']['seqID'] = protein_pairs['seqID_phage'].tolist()
         self.input['phage']['sequence'] = protein_pairs['sequence_phage'].tolist()
-        self.input['bacteria']['seqID'] = protein_pairs['seqID_bacteria'].tolist()
-        self.input['bacteria']['sequence'] = protein_pairs['sequence_bacteria'].tolist()
+        self.input['bacteria']['seqID'] = protein_pairs['seqID_k12'].tolist()
+        self.input['bacteria']['sequence'] = protein_pairs['sequence_k12'].tolist()
 
     def init_embedded_proteins(self):
         # Initialize embedded_proteins
