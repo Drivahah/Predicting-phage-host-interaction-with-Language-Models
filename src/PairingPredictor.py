@@ -107,7 +107,7 @@ class PairingPredictor():
             # Load T5 tokenizer and model if self.tokenizer and self.embedder are not defined
             if not hasattr(self, 'tokenizer') or not hasattr(self, 'embedder'):
                 self.tokenizer = T5Tokenizer.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc', do_lower_case=False)
-                self.embedder = T5EncoderModel.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc').to(device)
+                self.embedder = T5EncoderModel.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc').to(self.device)
                 # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
                 self.embedder.full() if self.device=='cpu' else self.embedder.half()
                 self.embedder.eval() # set model to eval mode, we don't want to train it
