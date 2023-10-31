@@ -205,9 +205,11 @@ class PairingPredictor():
                     raise ValueError(f'{embedding_type} has already been concatenated. Set overwrite to True to overwrite it')
 
         # Check that phage and bacteria embeddings have the same number of elements
-        if len(self.embedded_proteins['phage'][embedding_type]) != len(self.embedded_proteins['bacteria'][embedding_type]):
-            raise ValueError('phage and bacteria embeddings must have the same number of elements')
-
+        n_phage = len(self.embedded_proteins['phage'][embedding_type])
+        n_bacteria = len(self.embedded_proteins['bacteria'][embedding_type])
+        if n_phage != n_bacteria:
+            raise ValueError(f'phage and bacteria {embedding_type} have different number of elements: {n_phage} and {n_bacteria}')
+        
         # Only flattened_residue_embs should be concatenated, not the 2D residue_embs
         if embedding_type == 'residue_embs':
             embedding_type = 'flattened_residue_embs'
