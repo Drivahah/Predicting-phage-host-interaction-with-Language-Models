@@ -181,5 +181,14 @@ class PairingPredictor():
             f.write(f'actions: {self.actions}\n\n')
             f.write(f'embed_batch_size: {self.embed_batch_size}\n\n')
             f.write(f'models_config: {self.models_config}\n\n')
-            f.write(f'input: {self.input}\n\n')
-            f.write(f'embedded_proteins: {self.embedded_proteins}\n\n')
+            
+            # Truncate lists in input and embedded_proteins at 5 elements
+            for organism in self.input.keys():
+                for key in self.input[organism].keys():
+                    f.write(f'{organism}_{key}:\n{self.input[organism][key][:5]}')
+                    f.write('\n\n')
+            for organism in self.embedded_proteins.keys():
+                for key in self.embedded_proteins[organism].keys():
+                    f.write(f'{organism}_{key}:\n{self.embedded_proteins[organism][key][:5]}')
+                    f.write('\n\n')
+                    
