@@ -185,8 +185,8 @@ class PairingPredictor():
         # depending on the actions
         start = time.time()
 
-        if self.actions['per_residue']:
-            self.concatenate('residue_embs')
+        # if self.actions['per_residue']:
+        #     self.concatenate('residue_embs')
         if self.actions['per_protein']:
             self.concatenate('protein_embs')
 
@@ -198,9 +198,11 @@ class PairingPredictor():
         if embedding_type not in self.embedded_proteins['phage'].keys():
             raise ValueError('embedding_type must be either "residue_embs" or "protein_embs"')
         
-        # Check that embedded_proteins['paired'] is empty
-        if not overwrite and self.embedded_proteins['paired']:
-            raise ValueError('embedded_proteins["paired"] is not empty. Set overwrite to True to overwrite it')
+        # If embedded_proteins['paired'] exists already, check if embedding_type is already concatenated
+        if 'paired' in self.embedded_proteins.keys():
+            if embedding_type in self.embedded_proteins['paired'].keys():
+                if not overwrite:
+                    raise ValueError(f'{embedding_type} has already been concatenated. Set overwrite to True to overwrite it')
 
         # Check that phage and bacteria embeddings have the same number of elements
         if len(self.embedded_proteins['phage'][embedding_type]) != len(self.embedded_proteins['bacteria'][embedding_type]):
