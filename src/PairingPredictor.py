@@ -1,11 +1,13 @@
+import pandas as pd
+import torch
+import re
+import time
+from transformers import T5Tokenizer, T5EncoderModel
+
+
+
 class PairingPredictor():
     def __init__(self, protein_pairs):
-        # Import pandas and torch if not imported
-        if 'pandas' not in sys.modules():
-            import pandas as pd
-        if 'torch' not in sys.modules():
-            import torch
-
         # Parameters
         self.actions = {
             'per_residue': True,
@@ -102,12 +104,6 @@ class PairingPredictor():
         self.device = torch.device(self.models_config['device'])
         
         if self.models_config['embedder'] == 't5_xl_u50':
-            # Import T5Tokenizer, T5EncoderModel from transformers if not imported
-            if 'T5Tokenizer' not in sys.modules():
-                from transformers import T5Tokenizer
-            if 'T5EncoderModel' not in sys.modules():
-                from transformers import T5EncoderModel
-
             # Load T5 tokenizer and model if self.tokenizer and self.embedder are not defined
             if not hasattr(self, 'tokenizer') or not hasattr(self, 'embedder'):
                 self.tokenizer = T5Tokenizer.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc', do_lower_case=False)
@@ -117,10 +113,6 @@ class PairingPredictor():
                 self.embedder.eval() # set model to eval mode, we don't want to train it
 
     def embed_pairs(self):
-        # import time if not imported
-        if 'time' not in sys.modules():
-            import time
-
         # Check that input has been loaded
         if not self.input:
             raise ValueError('input has not been loaded')
@@ -135,10 +127,6 @@ class PairingPredictor():
         print(f'Embedding time: {end - start} seconds')
 
     def embed(self, organism: str):
-        # import re and numpy if not imported
-        if 're' not in sys.modules():
-            import re
-
         # Check that organism is a valid organism
         if organism not in self.input.keys():
             raise ValueError('organism must be either "phage" or "bacteria"')
