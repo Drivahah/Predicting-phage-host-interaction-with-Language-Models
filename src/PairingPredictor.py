@@ -207,6 +207,7 @@ class PairingPredictor():
                     # Write number of embedded proteins in a txt file
                     with open('PairingPredictor_debug.txt', 'a') as f:
                         f.write(f'Number of embedding_repr: {len(embedding_repr.last_hidden_state)}\n')
+                        f.write(f'Len ids: {len(ids)}\n')
 
                 for batch_idx in range(len(ids)): # for each protein in the current mini-batch
                     s_len = seq_lens[batch_idx]
