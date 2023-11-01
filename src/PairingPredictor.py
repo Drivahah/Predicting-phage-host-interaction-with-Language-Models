@@ -199,12 +199,16 @@ class PairingPredictor():
                     with torch.no_grad():
                         # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
                         embedding_repr = self.embedder(input_ids, attention_mask)
+                        if debug:
+                            # Write len of sequence in a txt file
+                            with open('PairingPredictor_debug.txt', 'a') as f:
+                                f.write(f'Embedding successful: Len of sequence: {seq_len}\n')
                 except RuntimeError:
                     print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
                     if debug:
                         # Write error in a txt file
                         with open('PairingPredictor_debug.txt', 'a') as f:
-                            f.write(f'RuntimeError during embedding for {id} (L={seq_len})\n')
+                            f.write(f'                      RuntimeError during embedding for {id} (L={seq_len})\n')
                     continue
 
                 if debug:
