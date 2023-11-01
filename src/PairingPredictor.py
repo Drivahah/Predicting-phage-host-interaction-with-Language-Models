@@ -8,7 +8,7 @@ from transformers import T5Tokenizer, T5EncoderModel
 
 
 class PairingPredictor():
-    def __init__(self, protein_pairs):
+    def __init__(self, protein_pairs, debug=False):
         # Parameters
         self.actions = {
             'per_residue': True,
@@ -21,11 +21,17 @@ class PairingPredictor():
         }
 
         # Data
-        self.get_input(protein_pairs) # Get input data
+        self.get_input(protein_pairs, debug) # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
 
-    def get_input(self, protein_pairs: pd.DataFrame):
+        # Create debug file stating time
+        if debug:
+            with open('PairingPredictor_debug.txt', 'w') as f:
+                f.write(f'Start time: {time.ctime()}\n\n')
+
+
+    def get_input(self, protein_pairs: pd.DataFrame, debug=False):
         # Check that protein_pairs is a DataFrame
         if not isinstance(protein_pairs, pd.DataFrame):
             raise TypeError('protein_pairs must be a DataFrame')
@@ -38,6 +44,13 @@ class PairingPredictor():
         # It reduces the number of padding residues needed
         protein_pairs = protein_pairs.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len())
 
+        if debug:
+            # Write number of proteins in a txt file
+            with open('PairingPredictor_debug.txt', 'a') as f:
+                f.write('get_input_____________________________________________________\n')
+                f.write(f'Number of phage proteins: {len(protein_pairs)}\n')
+                f.write(f'Number of bacteria proteins: {len(protein_pairs)}\n')
+
         # Store IDs and sequences in a dict
         self.input = {
             'phage': dict(),
@@ -47,6 +60,14 @@ class PairingPredictor():
         self.input['phage']['sequence'] = protein_pairs['sequence_phage'].tolist()
         self.input['bacteria']['seqID'] = protein_pairs['seqID_k12'].tolist()
         self.input['bacteria']['sequence'] = protein_pairs['sequence_k12'].tolist()
+
+        if debug:
+            # Write number of proteins (seqID and sequence) in a txt file
+            with open('PairingPredictor_debug.txt', 'a') as f:
+                f.write(f'Number of phage seqID: {len(self.input["phage"]["seqID"])}\n')
+                f.write(f'Number of phage sequence: {len(self.input["phage"]["sequence"])}\n')
+                f.write(f'Number of bacteria seqID: {len(self.input["bacteria"]["seqID"])}\n')
+                f.write(f'Number of bacteria sequence: {len(self.input["bacteria"]["sequence"])}\n\n')
 
     def init_embedded_proteins(self):
         # Initialize embedded_proteins
@@ -113,7 +134,7 @@ class PairingPredictor():
                 self.embedder.full() if self.device=='cpu' else self.embedder.half()
                 self.embedder.eval() # set model to eval mode, we don't want to train it
 
-    def embed_pairs(self):
+    def embed_pairs(self, debug=False):
         # Check that input has been loaded
         if not self.input:
             raise ValueError('input has not been loaded')
@@ -121,13 +142,13 @@ class PairingPredictor():
         # Embed phage and bacteria proteins
         start = time.time()
 
-        self.embed('phage')
-        self.embed('bacteria')
+        self.embed('phage', debug)
+        self.embed('bacteria', debug)
 
         end = time.time()
         print(f'Embedding time: {end - start} seconds')
 
-    def embed(self, organism: str):
+    def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
         if organism not in self.input.keys():
             raise ValueError('organism must be either "phage" or "bacteria"')
@@ -139,6 +160,11 @@ class PairingPredictor():
             end = time.time()
             print(f'Tokenizer and embedder loading time: {end - start} seconds')
         
+        if debug:
+            # Write organism in a txt file
+            with open('PairingPredictor_debug.txt', 'a') as f:
+                f.write(f'embed_{organism}_____________________________________________________\n')
+
         seq_dict = self.input[organism]
         batch = list()
         for i, (id, seq) in enumerate(zip(seq_dict['seqID'], seq_dict['sequence']), 1):
@@ -150,6 +176,11 @@ class PairingPredictor():
 
             # Embed batch if it is full or if it is the last batch
             if i % self.embed_batch_size == 0 or i == len(seq_dict['seqID']):
+                if debug:
+                    # Write number of proteins in batch in a txt file
+                    with open('PairingPredictor_debug.txt', 'a') as f:
+                        f.write(f'Number of proteins in batch: {len(batch)}\n')
+
                 ids, seqs, seq_lens = zip(*batch)
                 batch = list()
 
@@ -157,6 +188,12 @@ class PairingPredictor():
                 token_encoding = self.tokenizer.batch_encode_plus(seqs, add_special_tokens=True, padding="longest")
                 input_ids      = torch.tensor(token_encoding['input_ids']).to(self.device)
                 attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
+
+                if debug:
+                    # Write number of input_ids and attention_mask in a txt file
+                    with open('PairingPredictor_debug.txt', 'a') as f:
+                        f.write(f'Number of input_ids: {len(input_ids)}\n')
+                        f.write(f'Number of attention_mask: {len(attention_mask)}\n')
                 
                 try:
                     with torch.no_grad():
@@ -166,7 +203,12 @@ class PairingPredictor():
                     print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
                     continue
 
-                for batch_idx, identifier in enumerate(ids): # for each protein in the current mini-batch
+                if debug:
+                    # Write number of embedded proteins in a txt file
+                    with open('PairingPredictor_debug.txt', 'a') as f:
+                        f.write(f'Number of embedding_repr: {len(embedding_repr.last_hidden_state)}\n')
+
+                for batch_idx in range(len(ids)): # for each protein in the current mini-batch
                     s_len = seq_lens[batch_idx]
                     # slice off padding --> batch-size x seq_len x embedding_dim  
                     emb = embedding_repr.last_hidden_state[batch_idx,:s_len]
@@ -175,6 +217,17 @@ class PairingPredictor():
                     if self.actions['per_protein']: # apply average-pooling to derive per-protein embeddings (1024-d)
                         protein_emb = emb.mean(dim=0)
                         self.embedded_proteins[organism]["protein_embs"].append(protein_emb.detach().cpu().numpy().squeeze())
+
+                if debug:
+                    # Write number of embedded proteins in a txt file
+                    with open('PairingPredictor_debug.txt', 'a') as f:
+                        f.write(f'Number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n')
+
+        if debug:
+            # Write number of embedded proteins in a txt file
+            with open('PairingPredictor_debug.txt', 'a') as f:
+                f.write('\n')
+                f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
 
     def concatenate_embeddings(self):
         # Check that embedded_proteins has been loaded
