@@ -199,10 +199,11 @@ class PairingPredictor():
                         f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
                         f.write(f'Maximum sequence length in input_ids: {max([len(seq) for seq in input_ids])}\n')
                         f.write(f'First input_ids: {input_ids[0]}\n')
+                        f.write(f'First attention_mask: {attention_mask[0]}\n')
                 try:
                     with torch.no_grad():
                         # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
-                        embedding_repr = self.embedder(input_ids, attention_mask, max_length=max_seq_len)
+                        embedding_repr = self.embedder(input_ids, attention_mask)
                         if debug:
                             # Write len of sequence in a txt file
                             with open('PairingPredictor_debug.txt', 'a') as f:
