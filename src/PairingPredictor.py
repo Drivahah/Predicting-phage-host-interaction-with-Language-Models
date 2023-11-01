@@ -42,7 +42,7 @@ class PairingPredictor():
 
         # Sort protein pairs by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
-        protein_pairs = protein_pairs.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len())
+        protein_pairs = protein_pairs.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), reverse=True)
 
         if debug:
             # Write number of proteins in a txt file
@@ -194,7 +194,8 @@ class PairingPredictor():
                     with open('PairingPredictor_debug.txt', 'a') as f:
                         f.write(f'Number of input_ids: {len(input_ids)}\n')
                         f.write(f'Number of attention_mask: {len(attention_mask)}\n')
-                
+                        f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
+                        f.write(f'Maximum sequence length in input_ids: {max([len(seq) for seq in input_ids])}\n')
                 try:
                     with torch.no_grad():
                         # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
