@@ -42,7 +42,7 @@ class PairingPredictor():
 
         # Sort protein pairs by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
-        protein_pairs = protein_pairs.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), reverse=True)
+        protein_pairs.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
 
         if debug:
             # Write number of proteins in a txt file
