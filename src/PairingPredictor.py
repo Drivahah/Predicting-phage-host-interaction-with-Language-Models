@@ -164,10 +164,11 @@ class PairingPredictor():
             # Write organism in a txt file
             with open('PairingPredictor_debug.txt', 'a') as f:
                 f.write(f'embed_{organism}_____________________________________________________\n')
-                f.write(f'Default maximum sequence length: {self.tokenizer.model_max_length}\n')
 
         seq_dict = self.input[organism]
         batch = list()
+        # Define absolute max sequence length from inputs
+        max_seq_len = max([len(seq) for seq in seq_dict['sequence']])
         for i, (id, seq) in enumerate(zip(seq_dict['seqID'], seq_dict['sequence']), 1):
             # Format and append sequence to batch
             seq_len = len(seq)
@@ -186,7 +187,7 @@ class PairingPredictor():
                 batch = list()
 
                 # add_special_tokens adds extra token at the end of each sequence
-                token_encoding = self.tokenizer.batch_encode_plus(seqs, add_special_tokens=True, padding="longest")
+                token_encoding = self.tokenizer.batch_encode_plus(seqs, add_special_tokens=True, padding="longest", max_length=max_seq_len)
                 input_ids      = torch.tensor(token_encoding['input_ids']).to(self.device)
                 attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
 
