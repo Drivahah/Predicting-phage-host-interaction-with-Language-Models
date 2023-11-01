@@ -131,7 +131,7 @@ class PairingPredictor():
                 self.tokenizer = T5Tokenizer.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc', do_lower_case=False)
                 self.embedder = T5EncoderModel.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc').to(self.device)
                 # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
-                # self.embedder.full() if self.device=='cpu' else self.embedder.half()
+                self.embedder.full() if self.device=='cpu' else self.embedder.half()
                 self.embedder.eval() # set model to eval mode, we don't want to train it
 
     def embed_pairs(self, debug=False):
@@ -198,6 +198,7 @@ class PairingPredictor():
                         f.write(f'Number of attention_mask: {len(attention_mask)}\n')
                         f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
                         f.write(f'Maximum sequence length in input_ids: {max([len(seq) for seq in input_ids])}\n')
+                        f.write(f'input_ids: {input_ids}\n')
                 try:
                     with torch.no_grad():
                         # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
