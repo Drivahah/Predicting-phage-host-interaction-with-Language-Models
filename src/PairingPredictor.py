@@ -202,7 +202,7 @@ class PairingPredictor():
                 try:
                     with torch.no_grad():
                         # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
-                        embedding_repr = self.embedder(input_ids, attention_mask)
+                        embedding_repr = self.embedder(input_ids, attention_mask, max_length=max_seq_len)
                         if debug:
                             # Write len of sequence in a txt file
                             with open('PairingPredictor_debug.txt', 'a') as f:
