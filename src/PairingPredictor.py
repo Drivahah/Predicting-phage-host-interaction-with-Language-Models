@@ -198,7 +198,7 @@ class PairingPredictor():
                         f.write(f'Number of attention_mask: {len(attention_mask)}\n')
                         f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
                         f.write(f'Maximum sequence length in input_ids: {max([len(seq) for seq in input_ids])}\n')
-                        f.write(f'input_ids: {input_ids}\n')
+                        f.write(f'First input_ids: {input_ids[0]}\n')
                 try:
                     with torch.no_grad():
                         # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
