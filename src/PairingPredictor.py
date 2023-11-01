@@ -201,6 +201,10 @@ class PairingPredictor():
                         embedding_repr = self.embedder(input_ids, attention_mask)
                 except RuntimeError:
                     print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
+                    if debug:
+                        # Write error in a txt file
+                        with open('PairingPredictor_debug.txt', 'a') as f:
+                            f.write(f'RuntimeError during embedding for {id} (L={seq_len})\n')
                     continue
 
                 if debug:
