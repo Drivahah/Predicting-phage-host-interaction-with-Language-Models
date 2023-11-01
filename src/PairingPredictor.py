@@ -164,6 +164,7 @@ class PairingPredictor():
             # Write organism in a txt file
             with open('PairingPredictor_debug.txt', 'a') as f:
                 f.write(f'embed_{organism}_____________________________________________________\n')
+                f.write(f'Default maximum sequence length: {self.tokenizer.model_max_length}\n'')
 
         seq_dict = self.input[organism]
         batch = list()
