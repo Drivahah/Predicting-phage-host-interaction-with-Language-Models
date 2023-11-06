@@ -255,7 +255,8 @@ class PairingPredictor():
 
                     # Concatenate chunks
                     embedding_repr = embedding_repr.last_hidden_state
-                    emb = torch.cat(embedding_repr, dim=0)
+                    embedding_repr_list = [embedding_repr[x] for x in range(embedding_repr.size(0))]
+                    emb = torch.cat(embedding_repr_list, dim=0)
                     if self.actions['per_residue']:
                         self.embedded_proteins[organism]["residue_embs"].append(emb.detach().cpu().numpy().squeeze())
                     if self.actions['per_protein']:
