@@ -237,7 +237,6 @@ class PairingPredictor():
                         # Write number of embedded proteins in a txt file
                         with open('PairingPredictor_debug.txt', 'a') as f:
                             f.write(f'Number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n')
-
                 if seq_len > MAX_INPUT_LEN:
                     # Embed long sequence which was not added to batch
                     chunks = [seq[j:j+MAX_INPUT_LEN] for j in range(0, len(seq), MAX_INPUT_LEN)]
