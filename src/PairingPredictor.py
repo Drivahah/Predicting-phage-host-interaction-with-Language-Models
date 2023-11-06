@@ -144,8 +144,7 @@ class PairingPredictor():
 
         # If specified path exists, load embedded_proteins from it
         if os.path.exists(path):
-            with open(path, 'r') as f:
-                self.embedded_proteins = torch.load(f)
+            self.embedded_proteins = torch.load(f)
             if debug:
                 # State that embedded_proteins has been loaded from path
                 with open('PairingPredictor_debug.txt', 'a') as f:
@@ -162,8 +161,7 @@ class PairingPredictor():
 
             # Save embedded_proteins in a pt file
             if path:   
-                with open(path, 'w') as f:
-                    torch.save(self.embedded_proteins, f)
+                torch.save(self.embedded_proteins, f)
 
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
