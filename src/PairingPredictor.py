@@ -78,9 +78,11 @@ class PairingPredictor():
         if self.actions['per_residue']:
             self.embedded_proteins['phage']['residue_embs'] = []
             self.embedded_proteins['bacteria']['residue_embs'] = []
+            self.embedded_proteins['paired'] = dict()
         if self.actions['per_protein']:
             self.embedded_proteins['phage']['protein_embs'] = []
             self.embedded_proteins['bacteria']['protein_embs'] = []
+            self.embedded_proteins['paired'] = dict()
 
     def update_actions(self, actions: dict, overwrite_embedded_proteins=False):
         # Check that actions is a dict
@@ -134,19 +136,32 @@ class PairingPredictor():
                 self.embedder.full() if self.device=='cpu' else self.embedder.half()
                 self.embedder.eval() # set model to eval mode, we don't want to train it
 
-    def embed_pairs(self, debug=False):
+    def embed_pairs(self, path=None, debug=False):
         # Check that input has been loaded
         if not self.input:
             raise ValueError('input has not been loaded')
 
-        # Embed phage and bacteria proteins
-        start = time.time()
+        # If specified path exists, load embedded_proteins from it
+        if path:
+            with open(path, 'r') as f:
+                self.embedded_proteins = json.load(f)
+            if debug:
+                # State that embedded_proteins has been loaded from path
+                with open('PairingPredictor_debug.txt', 'a') as f:
+                    f.write(f'Embedded_proteins loaded from {path}\n')
+        # Otherwise embed phage and bacteria proteins
+        else:
+            start = time.time()
 
-        self.embed('phage', debug)
-        self.embed('bacteria', debug)
+            self.embed('phage', debug)
+            self.embed('bacteria', debug)
 
-        end = time.time()
-        print(f'Embedding time: {end - start} seconds')
+            end = time.time()
+            print(f'Embedding time: {end - start} seconds')
+
+            # Save embedded_proteins in a json file, if the path is valid
+            if path:
+                self.save_embedded_proteins(path)
 
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
@@ -268,6 +283,11 @@ class PairingPredictor():
             with open('PairingPredictor_debug.txt', 'a') as f:
                 f.write('\n')
                 f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
+
+    def save_embedded_proteins(self, file_path: str):
+        # Save embedded_proteins in a json file
+        with open(file_path, 'w') as f:
+            json.dump(self.embedded_proteins, f)
 
     def concatenate_embeddings(self):
         # Check that embedded_proteins has been loaded
