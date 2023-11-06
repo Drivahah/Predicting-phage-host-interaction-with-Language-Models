@@ -143,7 +143,7 @@ class PairingPredictor():
             raise ValueError('input has not been loaded')
 
         # If specified path exists, load embedded_proteins from it
-        if path:
+        if os.path.exists(path):
             with open(path, 'r') as f:
                 self.embedded_proteins = json.load(f)
             if debug:
@@ -160,8 +160,8 @@ class PairingPredictor():
             end = time.time()
             print(f'Embedding time: {end - start} seconds')
 
-            # Save embedded_proteins in a json file, if the path exists
-            if os.path.exists(path):
+            # Save embedded_proteins in a json file
+            if path:   
                 self.save_embedded_proteins(path)
 
     def embed(self, organism: str, debug=False):
