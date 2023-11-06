@@ -167,7 +167,7 @@ class PairingPredictor():
 
         seq_dict = self.input[organism]
         batch = list()
-        MAX_INPUT_LEN = 500
+        MAX_INPUT_LEN = 300
         for i, (id, seq) in enumerate(zip(seq_dict['seqID'], seq_dict['sequence']), 1):
             # Format and append sequence to batch
             seq_len = len(seq)
