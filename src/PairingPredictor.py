@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import re
 import time
+import os
 from transformers import T5Tokenizer, T5EncoderModel
 
 
@@ -159,8 +160,8 @@ class PairingPredictor():
             end = time.time()
             print(f'Embedding time: {end - start} seconds')
 
-            # Save embedded_proteins in a json file, if the path is valid
-            if path:
+            # Save embedded_proteins in a json file, if the path exists
+            if os.path.exists(path):
                 self.save_embedded_proteins(path)
 
     def embed(self, organism: str, debug=False):
