@@ -144,7 +144,7 @@ class PairingPredictor():
 
         # If specified path exists, load embedded_proteins from it
         if os.path.exists(path):
-            self.embedded_proteins = torch.load(f)
+            self.embedded_proteins = torch.load(path)
             if debug:
                 # State that embedded_proteins has been loaded from path
                 with open('PairingPredictor_debug.txt', 'a') as f:
@@ -161,7 +161,7 @@ class PairingPredictor():
 
             # Save embedded_proteins in a pt file
             if path:   
-                torch.save(self.embedded_proteins, f)
+                torch.save(self.embedded_proteins, path)
 
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
@@ -291,7 +291,7 @@ class PairingPredictor():
 
         # Load the concatenated embeddings if they exist
         if os.path.exists('concatenated_embeddings.pt'):
-            self.embedded_proteins = torch.load('concatenated_embeddings.pt')
+            self.embedded_proteins = torch.load(path)
             return
         # Otherwise concatenate phage and bacteria embeddings and save them in a pt file
         else:
