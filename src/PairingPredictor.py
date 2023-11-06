@@ -17,7 +17,7 @@ class PairingPredictor():
 
         # Parameters
         self.actions = {
-            'per_residue': True,
+            'per_residue': False,  # Beware of high memory consumption
             'per_protein': True
         }
         self.embed_batch_size = 100
@@ -89,10 +89,6 @@ class PairingPredictor():
         # Check that actions is a dict
         if not isinstance(actions, dict):
             raise TypeError('actions must be a dict')
-
-        # Check that actions has the correct keys
-        if not all(key in actions.keys() for key in ['per_residue', 'per_protein']):
-            raise ValueError('actions must have the following keys: per_residue, per_protein')
 
         # Check that actions has the correct values
         if not all(isinstance(value, bool) for value in actions.values()):
