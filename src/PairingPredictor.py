@@ -149,8 +149,8 @@ class PairingPredictor():
         # Embed phage and bacteria proteins
         start = time.time()
 
-        self.embed('phage', debug)
-        self.embed('bacteria', debug)
+        # self.embed('phage', debug)
+        # self.embed('bacteria', debug)
 
         end = time.time()
         print(f'Embedding time: {end - start} seconds')
