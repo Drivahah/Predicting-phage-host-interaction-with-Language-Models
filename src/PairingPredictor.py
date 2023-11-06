@@ -139,6 +139,13 @@ class PairingPredictor():
         if not self.input:
             raise ValueError('input has not been loaded')
 
+        if debug:
+            # Write number of proteins in a txt file
+            with open('PairingPredictor_debug.txt', 'a') as f:
+                f.write('get_input_____________________________________________________\n')
+                f.write(f'Number of phage proteins: {len(protein_pairs)}\n')
+                f.write(f'Number of bacteria proteins: {len(protein_pairs)}\n')
+
         # Embed phage and bacteria proteins
         start = time.time()
 
