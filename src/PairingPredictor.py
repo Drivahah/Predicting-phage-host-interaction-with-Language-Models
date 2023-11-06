@@ -183,60 +183,60 @@ class PairingPredictor():
                     # Write number of proteins in batch in a txt file
                     with open('PairingPredictor_debug.txt', 'a') as f:
                         f.write(f'Number of proteins in batch: {len(batch)}\n')
+                if batch:
+                    ids, seqs, seq_lens = zip(*batch)
+                    batch = list()
 
-                ids, seqs, seq_lens = zip(*batch)
-                batch = list()
+                    # add_special_tokens adds extra token at the end of each sequence
+                    token_encoding = self.tokenizer.batch_encode_plus(seqs, add_special_tokens=True, padding="longest")
+                    input_ids      = torch.tensor(token_encoding['input_ids']).to(self.device)
+                    attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
 
-                # add_special_tokens adds extra token at the end of each sequence
-                token_encoding = self.tokenizer.batch_encode_plus(seqs, add_special_tokens=True, padding="longest")
-                input_ids      = torch.tensor(token_encoding['input_ids']).to(self.device)
-                attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
-
-                if debug:
-                    # Write number of input_ids and attention_mask in a txt file
-                    with open('PairingPredictor_debug.txt', 'a') as f:
-                        f.write(f'Number of input_ids: {len(input_ids)}\n')
-                        f.write(f'Number of attention_mask: {len(attention_mask)}\n')
-                        f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
-                        f.write(f'Maximum sequence length in input_ids: {max([len(seq) for seq in input_ids])}\n')
-                        f.write(f'First input_ids: {input_ids[0]}\n')
-                        f.write(f'First attention_mask: {attention_mask[0]}\n')
-                try:
-                    with torch.no_grad():
-                        # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
-                        embedding_repr = self.embedder(input_ids, attention_mask)
-                        if debug:
-                            # Write len of sequence in a txt file
-                            with open('PairingPredictor_debug.txt', 'a') as f:
-                                f.write(f'Embedding successful: Len of sequence: {seq_len}\n')
-                except RuntimeError:
-                    print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
                     if debug:
-                        # Write error in a txt file
+                        # Write number of input_ids and attention_mask in a txt file
                         with open('PairingPredictor_debug.txt', 'a') as f:
-                            f.write(f'                      RuntimeError during embedding for {id} (L={seq_len})\n')
-                    continue
+                            f.write(f'Number of input_ids: {len(input_ids)}\n')
+                            f.write(f'Number of attention_mask: {len(attention_mask)}\n')
+                            f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
+                            f.write(f'Maximum sequence length in input_ids: {max([len(seq) for seq in input_ids])}\n')
+                            f.write(f'First input_ids: {input_ids[0]}\n')
+                            f.write(f'First attention_mask: {attention_mask[0]}\n')
+                    try:
+                        with torch.no_grad():
+                            # returns: ( batch-size x max_seq_len_in_minibatch x embedding_dim )
+                            embedding_repr = self.embedder(input_ids, attention_mask)
+                            if debug:
+                                # Write len of sequence in a txt file
+                                with open('PairingPredictor_debug.txt', 'a') as f:
+                                    f.write(f'Embedding successful: Len of sequence: {seq_len}\n')
+                    except RuntimeError:
+                        print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
+                        if debug:
+                            # Write error in a txt file
+                            with open('PairingPredictor_debug.txt', 'a') as f:
+                                f.write(f'                      RuntimeError during embedding for {id} (L={seq_len})\n')
+                        continue
 
-                if debug:
-                    # Write number of embedded proteins in a txt file
-                    with open('PairingPredictor_debug.txt', 'a') as f:
-                        f.write(f'Number of embedding_repr: {len(embedding_repr.last_hidden_state)}\n')
-                        f.write(f'Len ids: {len(ids)}\n')
+                    if debug:
+                        # Write number of embedded proteins in a txt file
+                        with open('PairingPredictor_debug.txt', 'a') as f:
+                            f.write(f'Number of embedding_repr: {len(embedding_repr.last_hidden_state)}\n')
+                            f.write(f'Len ids: {len(ids)}\n')
 
-                for batch_idx in range(len(ids)): # for each protein in the current mini-batch
-                    s_len = seq_lens[batch_idx]
-                    # slice off padding --> batch-size x seq_len x embedding_dim  
-                    emb = embedding_repr.last_hidden_state[batch_idx,:s_len]
-                    if self.actions['per_residue']: # store per-residue embeddings (Lx1024)
-                        self.embedded_proteins[organism]["residue_embs"].append(emb.detach().cpu().numpy().squeeze())
-                    if self.actions['per_protein']: # apply average-pooling to derive per-protein embeddings (1024-d)
-                        protein_emb = emb.mean(dim=0)
-                        self.embedded_proteins[organism]["protein_embs"].append(protein_emb.detach().cpu().numpy().squeeze())
+                    for batch_idx in range(len(ids)): # for each protein in the current mini-batch
+                        s_len = seq_lens[batch_idx]
+                        # slice off padding --> batch-size x seq_len x embedding_dim  
+                        emb = embedding_repr.last_hidden_state[batch_idx,:s_len]
+                        if self.actions['per_residue']: # store per-residue embeddings (Lx1024)
+                            self.embedded_proteins[organism]["residue_embs"].append(emb.detach().cpu().numpy().squeeze())
+                        if self.actions['per_protein']: # apply average-pooling to derive per-protein embeddings (1024-d)
+                            protein_emb = emb.mean(dim=0)
+                            self.embedded_proteins[organism]["protein_embs"].append(protein_emb.detach().cpu().numpy().squeeze())
 
-                if debug:
-                    # Write number of embedded proteins in a txt file
-                    with open('PairingPredictor_debug.txt', 'a') as f:
-                        f.write(f'Number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n')
+                    if debug:
+                        # Write number of embedded proteins in a txt file
+                        with open('PairingPredictor_debug.txt', 'a') as f:
+                            f.write(f'Number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n')
 
                 if seq_len > MAX_INPUT_LEN:
                     # Embed long sequence which was not added to batch
