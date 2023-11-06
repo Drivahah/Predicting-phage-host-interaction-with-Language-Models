@@ -9,6 +9,11 @@ from transformers import T5Tokenizer, T5EncoderModel
 
 class PairingPredictor():
     def __init__(self, protein_pairs, debug=False):
+        # Create debug file stating time
+        if debug:
+            with open('PairingPredictor_debug.txt', 'w') as f:
+                f.write(f'Start time: {time.ctime()}\n\n')
+
         # Parameters
         self.actions = {
             'per_residue': True,
@@ -24,11 +29,6 @@ class PairingPredictor():
         self.get_input(protein_pairs, debug) # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
-
-        # Create debug file stating time
-        if debug:
-            with open('PairingPredictor_debug.txt', 'w') as f:
-                f.write(f'Start time: {time.ctime()}\n\n')
 
 
     def get_input(self, protein_pairs: pd.DataFrame, debug=False):
@@ -139,18 +139,11 @@ class PairingPredictor():
         if not self.input:
             raise ValueError('input has not been loaded')
 
-        if debug:
-            # Write number of proteins in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
-                f.write('get_input_____________________________________________________\n')
-                f.write(f'Number of phage proteins: {len(protein_pairs)}\n')
-                f.write(f'Number of bacteria proteins: {len(protein_pairs)}\n')
-
         # Embed phage and bacteria proteins
         start = time.time()
 
-        # self.embed('phage', debug)
-        # self.embed('bacteria', debug)
+        self.embed('phage', debug)
+        self.embed('bacteria', debug)
 
         end = time.time()
         print(f'Embedding time: {end - start} seconds')
