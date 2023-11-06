@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import torch
-import json
 import re
 import time
 import os
@@ -146,7 +145,7 @@ class PairingPredictor():
         # If specified path exists, load embedded_proteins from it
         if os.path.exists(path):
             with open(path, 'r') as f:
-                self.embedded_proteins = json.load(f)
+                self.embedded_proteins = torch.load(f)
             if debug:
                 # State that embedded_proteins has been loaded from path
                 with open('PairingPredictor_debug.txt', 'a') as f:
@@ -161,9 +160,10 @@ class PairingPredictor():
             end = time.time()
             print(f'Embedding time: {end - start} seconds')
 
-            # Save embedded_proteins in a json file
+            # Save embedded_proteins in a pt file
             if path:   
-                self.save_embedded_proteins(path)
+                with open(path, 'w') as f:
+                    torch.save(self.embedded_proteins, f)
 
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
@@ -286,27 +286,30 @@ class PairingPredictor():
                 f.write('\n')
                 f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
 
-    def save_embedded_proteins(self, file_path: str):
-        # Save embedded_proteins in a json file
-        with open(file_path, 'w') as f:
-            json.dump(self.embedded_proteins, f)
-
-    def concatenate_embeddings(self):
+    def concatenate_embeddings(self, path=None):
         # Check that embedded_proteins has been loaded
         if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
             raise ValueError('embedded_proteins has not been loaded')
 
-        # Concatenate phage and bacteria per residue and per protein embeddings 
-        # depending on the actions
-        start = time.time()
+        # Load the concatenated embeddings if they exist
+        if os.path.exists('concatenated_embeddings.pt'):
+            self.embedded_proteins = torch.load('concatenated_embeddings.pt')
+            return
+        # Otherwise concatenate phage and bacteria embeddings and save them in a pt file
+        else:
+            # Concatenate phage and bacteria per residue and per protein embeddings 
+            # depending on the actions
+            start = time.time()
 
-        # if self.actions['per_residue']:
-        #     self.concatenate('residue_embs')
-        if self.actions['per_protein']:
-            self.concatenate('protein_embs')
+            # if self.actions['per_residue']:
+            #     self.concatenate('residue_embs')
+            if self.actions['per_protein']:
+                self.concatenate('protein_embs')
 
-        end = time.time()
-        print(f'Concatenation time: {end - start} seconds')
+            end = time.time()
+            print(f'Concatenation time: {end - start} seconds')
+             # Save the concatenated embeddings
+            torch.save(self.embedded_proteins, path)
 
     def concatenate(self, embedding_type: str, separator = 300000, overwrite=False):
         # Check that embedding_type is a valid embedding_type
