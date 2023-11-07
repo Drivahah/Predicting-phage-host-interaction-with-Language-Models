@@ -198,7 +198,7 @@ class PairingPredictor():
 
         # If there is a mismatch in the number of proteins, and they were not concatenated
         if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
-            if len(self.embedded_proteins['paired']) != self.n_pairs:
+            if len(self.embedded_proteins['paired']['protein_embs']) != self.n_pairs:
                 if os.path.exists(path) and self.log:
                     with open(self.log, 'a') as f:
                         f.write('Mismatch in the number of proteins and they were not concatenated\n')
@@ -359,7 +359,7 @@ class PairingPredictor():
                 f.write(f'concatenate_embeddings' + '_' * 70 + '\n')
 
         # If length of self.embedded_proteins['paired'] = self.n_pairs, then concatenation has already been done
-        if len(self.embedded_proteins['paired']) != self.n_pairs:
+        if len(self.embedded_proteins['paired']['protein_embs']) != self.n_pairs:
             # Concatenate phage and bacteria per residue and per protein embeddings 
             # depending on the actions
             start = time.time()
