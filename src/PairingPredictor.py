@@ -330,6 +330,7 @@ class PairingPredictor():
         for i in range(len(self.embedded_proteins['phage'][embedding_type])):
             phage = self.embedded_proteins['phage'][embedding_type][i]
             bacteria = self.embedded_proteins['bacteria'][embedding_type][i]
+            separator = np.array([separator])  # Convert separator to a 1-dimensional array
             self.embedded_proteins['paired'][embedding_type].append(np.concatenate((phage, separator, bacteria)))
 
     def save_log(self, file_path: str):
