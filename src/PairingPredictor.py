@@ -9,13 +9,25 @@ from transformers import T5Tokenizer, T5EncoderModel
 
 
 class PairingPredictor():
-    def __init__(self, protein_pairs, debug=False):
-        # Create debug file stating time
+    def __init__(self, protein_pairs, debug=None, log=None):
+        # Check that debug path exists
         if debug:
-            with open('PairingPredictor_debug.txt', 'w') as f:
+            # Create debug file stating time, creating folders if necessary
+            if not os.path.exists(os.path.dirname(debug)):
+                os.makedirs(os.path.dirname(debug))
+            with open(debug, 'w') as f:
+                f.write(f'Start time: {time.ctime()}\n\n')
+
+        if log:
+            # Create log file stating time, creating folders if necessary
+            if not os.path.exists(os.path.dirname(log)):
+                os.makedirs(os.path.dirname(log))
+            with open(log, 'w') as f:
                 f.write(f'Start time: {time.ctime()}\n\n')
 
         # Parameters
+        self.debug = debug
+        self.log = log
         self.actions = {
             'per_residue': False,  # Beware of high memory consumption
             'per_protein': True
@@ -27,13 +39,20 @@ class PairingPredictor():
         }
 
         # Data
-        self.get_input(protein_pairs, debug) # Get input data
+        self.get_input(protein_pairs) # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
         self.n_pairs = len(protein_pairs)
 
+        # Write parameters in the log file
+        if log:
+            with open(log, 'a') as f:
+                f.write(f'Parameters' + '_' * 70 + '\n')
+                f.write(f'actions: {self.actions}\n')
+                f.write(f'embed_batch_size: {self.embed_batch_size}\n')
+                f.write(f'models_config: {self.models_config}\n\n')
 
-    def get_input(self, protein_pairs: pd.DataFrame, debug=False):
+    def get_input(self, protein_pairs: pd.DataFrame):
         # Check that protein_pairs is a DataFrame
         if not isinstance(protein_pairs, pd.DataFrame):
             raise TypeError('protein_pairs must be a DataFrame')
@@ -42,16 +61,20 @@ class PairingPredictor():
         if not all(col in protein_pairs.columns for col in ['seqID_phage', 'sequence_phage', 'seqID_k12', 'sequence_k12']):
             raise ValueError('protein_pairs must have the following columns: seqID_phage, sequence_phage, seqID_bacteria, sequence_bacteria')
 
+        # Check that protein_pairs is not empty
+        if protein_pairs.empty:
+            raise ValueError('protein_pairs is empty')
+
+        if self.log:
+            # Write number of proteins not null in a txt file
+            with open(self.log, 'a') as f:
+                f.write(f'get_input' + '_' * 70 + '\n')
+                f.write(f"Number of phage proteins not null: {protein_pairs['sequence_phage'].notnull().sum()}\n")
+                f.write(f"Number of bacteria proteins not null: {protein_pairs['sequence_k12'].notnull().sum()}\n\n")
+
         # Sort protein pairs by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
         protein_pairs.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
-
-        if debug:
-            # Write number of proteins in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
-                f.write('get_input_____________________________________________________\n')
-                f.write(f"Number of phage proteins: {len(protein_pairs['sequence_phage'])}\n")
-                f.write(f"Number of bacteria proteins: {len(protein_pairs['sequence_k12'])}\n")
 
         # Store IDs and sequences in a dict
         self.input = {
@@ -63,30 +86,51 @@ class PairingPredictor():
         self.input['bacteria']['seqID'] = protein_pairs['seqID_k12'].tolist()
         self.input['bacteria']['sequence'] = protein_pairs['sequence_k12'].tolist()
 
-        if debug:
+        if self.debug:
             # Write number of proteins (seqID and sequence) in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
+                f.write(f'get_input' + '_' * 70 + '\n')
                 f.write(f'Number of phage seqID: {len(self.input["phage"]["seqID"])}\n')
                 f.write(f'Number of phage sequence: {len(self.input["phage"]["sequence"])}\n')
                 f.write(f'Number of bacteria seqID: {len(self.input["bacteria"]["seqID"])}\n')
                 f.write(f'Number of bacteria sequence: {len(self.input["bacteria"]["sequence"])}\n\n')
 
     def init_embedded_proteins(self):
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'init_embedded_proteins' + '_' * 70 + '\n')
+
         # Initialize embedded_proteins
         self.embedded_proteins = {
             'phage': dict(),
             'bacteria': dict()
         }
+
         if self.actions['per_residue']:
             self.embedded_proteins['phage']['residue_embs'] = []
             self.embedded_proteins['bacteria']['residue_embs'] = []
             self.embedded_proteins['paired'] = dict()
+
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'embedded_proteins["phage"]["residue_embs"] initialized\n')
+                    f.write(f'embedded_proteins["bacteria"]["residue_embs"] initialized\n')
+                    f.write(f'embedded_proteins["paired"] initialized\n')
         if self.actions['per_protein']:
             self.embedded_proteins['phage']['protein_embs'] = []
             self.embedded_proteins['bacteria']['protein_embs'] = []
             self.embedded_proteins['paired'] = dict()
 
-    def update_actions(self, actions: dict, overwrite_embedded_proteins=False):
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'embedded_proteins["phage"]["protein_embs"] initialized\n')
+                    f.write(f'embedded_proteins["bacteria"]["protein_embs"] initialized\n')
+                    f.write(f'embedded_proteins["paired"] initialized\n')
+        if self.log:
+            with open(self.log , 'a') as f:
+                f.write('\n')
+
+    def update_actions(self, actions: dict):
         # Check that actions is a dict
         if not isinstance(actions, dict):
             raise TypeError('actions must be a dict')
@@ -98,14 +142,10 @@ class PairingPredictor():
         # Update actions
         self.actions.update(actions)
 
-        if not overwrite_embedded_proteins:
-            # If embedded_proteins is empty, initialize it
-            # Otherwise raise error
-            if not self.embedded_proteins['phage'] and not self.embedded_proteins['bacteria']:
-                self.init_embedded_proteins()
-            else:
-                raise ValueError('embedded_proteins is not empty. Set overwrite_embedded_proteins to True to overwrite it')
-
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write('update_actions' + '_' * 70 + '\n')
+                f.write(f'actions updated: {self.actions}\n\n')
 
     def update_embed_batch_size(self, embed_batch_size: int):
         # Check that embed_batch_size is an int
@@ -118,11 +158,17 @@ class PairingPredictor():
 
         # Update embed_batch_size
         self.embed_batch_size = embed_batch_size
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write('update_embed_batch_size' + '_' * 70 + '\n')
+                f.write(f'embed_batch_size updated: {self.embed_batch_size}\n\n')
     
     def get_embedder(self):
         # Set device and check if available
         if self.models_config['device'] == 'cuda:0' and not torch.cuda.is_available():
             raise RuntimeError('CUDA is not available')
+            
         self.device = torch.device(self.models_config['device'])
         
         if self.models_config['embedder'] == 't5_xl_u50':
@@ -139,28 +185,48 @@ class PairingPredictor():
         if not self.input:
             raise ValueError('input has not been loaded')
 
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'embed_pairs' + '_' * 70 + '\n')
+
         # If specified path exists, load embedded_proteins from it
         if os.path.exists(path):
             self.embedded_proteins = torch.load(path)
-            if debug:
-                # State that embedded_proteins has been loaded from path
-                with open('PairingPredictor_debug.txt', 'a') as f:
-                    f.write(f'Embedded_proteins loaded from {path}\n')
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'embedded_proteins loaded from {path}\n\n')
 
         # If there is a mismatch in the number of proteins, and they were not concatenated
         if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
             if len(self.embedded_proteins['paired']) != self.n_pairs:
+                if os.path.exists(path) and self.log:
+                    with open(self.log, 'a') as f:
+                        f.write('Mismatch in the number of proteins and they were not concatenated\n')
+                        f.write(f'Number of protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
+                        f.write(f'Number of paired: {len(self.embedded_proteins["paired"])}\n\n')
+                        f.write(f'Number of expected proteins: {self.n_pairs}\n')
+                        f.write(f'Re-computing embeddings\n\n')
+
                 start = time.time()
 
                 self.embed('phage', debug)
                 self.embed('bacteria', debug)
 
                 end = time.time()
-                print(f'Embedding time: {end - start} seconds')
+
+                if self.log:
+                    with open(self.log, 'a') as f:
+                        f.write(f'Embedding time: {end - start} seconds\n\n')
+                        f.write(f'Number of phage protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
+                        f.write(f'Number of bacteria protein_embs: {len(self.embedded_proteins["bacteria"]["protein_embs"])}\n')
 
                 # Save embedded_proteins in a pt file
                 if path:   
                     torch.save(self.embedded_proteins, path)
+
+                if self.log:
+                    with open(self.log, 'a') as f:
+                        f.write(f'embedded_proteins saved in {path}\n\n')
 
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
@@ -288,6 +354,10 @@ class PairingPredictor():
         if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
             raise ValueError('embedded_proteins has not been loaded')
 
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'concatenate_embeddings' + '_' * 70 + '\n')
+
         # If length of self.embedded_proteins['paired'] = self.n_pairs, then concatenation has already been done
         if len(self.embedded_proteins['paired']) != self.n_pairs:
             # Concatenate phage and bacteria per residue and per protein embeddings 
@@ -300,9 +370,22 @@ class PairingPredictor():
                 self.concatenate('protein_embs', separator, debug)
 
             end = time.time()
-            print(f'Concatenation time: {end - start} seconds')
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'Concatenation time: {end - start} seconds\n')
+                    f.write(f'Number of concatenated protein_embs: {len(self.embedded_proteins["paired"]["protein_embs"])}\n')
+
              # Save the concatenated embeddings
             torch.save(self.embedded_proteins['paired'], path)
+
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'embedded_proteins["paired"] saved in {path}\n\n')
+
+        else:
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'Concatenation has already been done\n\n')
 
     def concatenate(self, embedding_type: str, separator=300000, debug=False, overwrite=False):
         # Check that embedding_type is a valid embedding_type
@@ -351,22 +434,4 @@ class PairingPredictor():
 
             # Raise error if there is a length mismatch
             if len(self.embedded_proteins['paired'][embedding_type][i]) != len(phage) + len(separator) + len(bacteria):
-                raise ValueError(f'Length mismatch in concatenated {embedding_type} for self.input["phage"]["seqID"][{i}] and self.input["bacteria"]["seqID"][{i}], position {i}')
-
-    def save_log(self, file_path: str):
-        # Save parameters and embedded proteins in a txt file
-        with open(file_path, 'w') as f:
-            f.write(f'actions: {self.actions}\n\n')
-            f.write(f'embed_batch_size: {self.embed_batch_size}\n\n')
-            f.write(f'models_config: {self.models_config}\n\n')
-            
-            # Truncate lists in input and embedded_proteins at 5 elements
-            for organism in self.input.keys():
-                for key in self.input[organism].keys():
-                    f.write(f'{organism}_{key}:\n{self.input[organism][key][:5]}')
-                    f.write('\n\n')
-            for organism in self.embedded_proteins.keys():
-                for key in self.embedded_proteins[organism].keys():
-                    f.write(f'{organism}_{key}:\n{self.embedded_proteins[organism][key][:5]}')
-                    f.write('\n\n')
-                    
+                raise ValueError(f'Length mismatch in concatenated {embedding_type} for self.input["phage"]["seqID"][{i}] and self.input["bacteria"]["seqID"][{i}], position {i}')                    
