@@ -30,6 +30,7 @@ class PairingPredictor():
         self.get_input(protein_pairs, debug) # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
+        self.n_pairs = len(protein_pairs)
 
 
     def get_input(self, protein_pairs: pd.DataFrame, debug=False):
@@ -49,8 +50,8 @@ class PairingPredictor():
             # Write number of proteins in a txt file
             with open('PairingPredictor_debug.txt', 'a') as f:
                 f.write('get_input_____________________________________________________\n')
-                f.write(f'Number of phage proteins: {len(protein_pairs)}\n')
-                f.write(f'Number of bacteria proteins: {len(protein_pairs)}\n')
+                f.write(f'Number of phage proteins: {len(protein_pairs['sequence_phage'])}\n')
+                f.write(f'Number of bacteria proteins: {len(protein_pairs['sequence_k12'])}\n')
 
         # Store IDs and sequences in a dict
         self.input = {
@@ -285,12 +286,8 @@ class PairingPredictor():
         if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
             raise ValueError('embedded_proteins has not been loaded')
 
-        # Load the concatenated embeddings if they exist
-        if os.path.exists('concatenated_embeddings.pt'):
-            self.embedded_proteins = torch.load(path)
-            return
-        # Otherwise concatenate phage and bacteria embeddings and save them in a pt file
-        else:
+        # If length of self.embedded_proteins['paired'] = self.n_pairs, then concatenation has already been done
+        if len(self.embedded_proteins['paired']) != self.n_pairs:
             # Concatenate phage and bacteria per residue and per protein embeddings 
             # depending on the actions
             start = time.time()
