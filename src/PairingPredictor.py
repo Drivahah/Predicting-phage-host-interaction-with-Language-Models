@@ -281,7 +281,7 @@ class PairingPredictor():
                 f.write('\n')
                 f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
 
-    def concatenate_embeddings(self, path=None):
+    def concatenate_embeddings(self, path=None, debug=False):
         # Check that embedded_proteins has been loaded
         if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
             raise ValueError('embedded_proteins has not been loaded')
@@ -295,14 +295,14 @@ class PairingPredictor():
             # if self.actions['per_residue']:
             #     self.concatenate('residue_embs')
             if self.actions['per_protein']:
-                self.concatenate('protein_embs')
+                self.concatenate('protein_embs', debug)
 
             end = time.time()
             print(f'Concatenation time: {end - start} seconds')
              # Save the concatenated embeddings
             torch.save(self.embedded_proteins, path)
 
-    def concatenate(self, embedding_type: str, separator = 300000, overwrite=False):
+    def concatenate(self, embedding_type: str, separator = 300000, debug=False, overwrite=False):
         # Check that embedding_type is a valid embedding_type
         if embedding_type not in self.embedded_proteins['phage'].keys():
             raise ValueError('embedding_type must be either "residue_embs" or "protein_embs"')
@@ -326,11 +326,22 @@ class PairingPredictor():
         # Concatenate phage and bacteria embeddings
         # Note: separator set to 300000 because it is out of the range of T5 embeddings values
         #       and it should help the model distinguish the two proteins
+        if debug:
+            # Write embedding_type in a txt file
+            with open('PairingPredictor_debug.txt', 'a') as f:
+                f.write(f'concatenate_{embedding_type}_____________________________________________________\n')
+        
         self.embedded_proteins['paired'][embedding_type] = []
         for i in range(len(self.embedded_proteins['phage'][embedding_type])):
             phage = self.embedded_proteins['phage'][embedding_type][i]
             bacteria = self.embedded_proteins['bacteria'][embedding_type][i]
             separator = np.array([separator])  # Convert separator to a 1-dimensional array
+            if debug:
+                # Write phage, separator and bacteria in a txt file
+                with open('PairingPredictor_debug.txt', 'a') as f:
+                    f.write(f'phage: {phage}\n')
+                    f.write(f'separator: {separator}\n')
+                    f.write(f'bacteria: {bacteria}\n')
             self.embedded_proteins['paired'][embedding_type].append(np.concatenate((phage, separator, bacteria)))
 
     def save_log(self, file_path: str):
