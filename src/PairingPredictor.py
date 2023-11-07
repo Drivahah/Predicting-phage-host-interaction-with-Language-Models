@@ -50,8 +50,8 @@ class PairingPredictor():
             # Write number of proteins in a txt file
             with open('PairingPredictor_debug.txt', 'a') as f:
                 f.write('get_input_____________________________________________________\n')
-                f.write(f'Number of phage proteins: {len(protein_pairs['sequence_phage'])}\n')
-                f.write(f'Number of bacteria proteins: {len(protein_pairs['sequence_k12'])}\n')
+                f.write(f"Number of phage proteins: {len(protein_pairs['sequence_phage'])}\n")
+                f.write(f"Number of bacteria proteins: {len(protein_pairs['sequence_k12'])}\n")
 
         # Store IDs and sequences in a dict
         self.input = {
