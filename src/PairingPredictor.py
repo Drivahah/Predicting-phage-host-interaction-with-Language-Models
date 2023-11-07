@@ -146,6 +146,8 @@ class PairingPredictor():
                 # State that embedded_proteins has been loaded from path
                 with open('PairingPredictor_debug.txt', 'a') as f:
                     f.write(f'Embedded_proteins loaded from {path}\n')
+
+        # If there is a mismatch in the number of proteins, and they were not concatenated
         if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
             if len(self.embedded_proteins['paired']) != self.n_pairs:
                 start = time.time()
@@ -300,7 +302,7 @@ class PairingPredictor():
             end = time.time()
             print(f'Concatenation time: {end - start} seconds')
              # Save the concatenated embeddings
-            torch.save(self.embedded_proteins, path)
+            torch.save(self.embedded_proteins['paired'], path)
 
     def concatenate(self, embedding_type: str, separator = 300000, debug=False, overwrite=False):
         # Check that embedding_type is a valid embedding_type
