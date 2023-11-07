@@ -146,19 +146,19 @@ class PairingPredictor():
                 # State that embedded_proteins has been loaded from path
                 with open('PairingPredictor_debug.txt', 'a') as f:
                     f.write(f'Embedded_proteins loaded from {path}\n')
-        # Otherwise embed phage and bacteria proteins
-        else:
-            start = time.time()
+        if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
+            if len(self.embedded_proteins['paired']) != self.n_pairs:
+                start = time.time()
 
-            self.embed('phage', debug)
-            self.embed('bacteria', debug)
+                self.embed('phage', debug)
+                self.embed('bacteria', debug)
 
-            end = time.time()
-            print(f'Embedding time: {end - start} seconds')
+                end = time.time()
+                print(f'Embedding time: {end - start} seconds')
 
-            # Save embedded_proteins in a pt file
-            if path:   
-                torch.save(self.embedded_proteins, path)
+                # Save embedded_proteins in a pt file
+                if path:   
+                    torch.save(self.embedded_proteins, path)
 
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
