@@ -335,7 +335,7 @@ class PairingPredictor():
         for i in range(len(self.embedded_proteins['phage'][embedding_type])):
             phage = self.embedded_proteins['phage'][embedding_type][i]
             bacteria = self.embedded_proteins['bacteria'][embedding_type][i]
-            separator = np.array([separator])  # Convert separator to a 1-dimensional array
+            separator = np.array(separator)  # Convert separator to a 1-dimensional array
             # if debug:
             # Write phage, separator and bacteria in a txt file
             with open('PairingPredictor_debug.txt', 'a') as f:
