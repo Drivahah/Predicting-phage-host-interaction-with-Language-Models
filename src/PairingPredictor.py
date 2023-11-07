@@ -295,7 +295,7 @@ class PairingPredictor():
             # if self.actions['per_residue']:
             #     self.concatenate('residue_embs')
             if self.actions['per_protein']:
-                self.concatenate('protein_embs', debug)
+                self.concatenate('protein_embs', debug=debug)
 
             end = time.time()
             print(f'Concatenation time: {end - start} seconds')
