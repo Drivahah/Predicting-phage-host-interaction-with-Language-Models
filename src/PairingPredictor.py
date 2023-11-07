@@ -283,7 +283,7 @@ class PairingPredictor():
                 f.write('\n')
                 f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
 
-    def concatenate_embeddings(self, path=None, debug=False):
+    def concatenate_embeddings(self, path=None, debug=False, separator=300000):
         # Check that embedded_proteins has been loaded
         if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
             raise ValueError('embedded_proteins has not been loaded')
@@ -294,17 +294,17 @@ class PairingPredictor():
             # depending on the actions
             start = time.time()
 
-            # if self.actions['per_residue']:
-            #     self.concatenate('residue_embs')
+            if self.actions['per_residue']:
+                self.concatenate('residue_embs')
             if self.actions['per_protein']:
-                self.concatenate('protein_embs', debug=debug)
+                self.concatenate('protein_embs', separator, debug)
 
             end = time.time()
             print(f'Concatenation time: {end - start} seconds')
              # Save the concatenated embeddings
             torch.save(self.embedded_proteins['paired'], path)
 
-    def concatenate(self, embedding_type: str, separator = 300000, debug=False, overwrite=False):
+    def concatenate(self, embedding_type: str, separator=300000, debug=False, overwrite=False):
         # Check that embedding_type is a valid embedding_type
         if embedding_type not in self.embedded_proteins['phage'].keys():
             raise ValueError('embedding_type must be either "residue_embs" or "protein_embs"')
@@ -348,6 +348,10 @@ class PairingPredictor():
                     f.write(f'bacteria: {bacteria}\n')
                     f.write(f'bacteria type: {type(bacteria)}\n')
             self.embedded_proteins['paired'][embedding_type].append(np.concatenate((phage, separator, bacteria)))
+
+            # Raise error if there is a length mismatch
+            if len(self.embedded_proteins['paired'][embedding_type][i]) != len(phage) + len(separator) + len(bacteria):
+                raise ValueError(f'Length mismatch in concatenated {embedding_type} for self.input["phage"]["seqID"][{i}] and self.input["bacteria"]["seqID"][{i}], position {i}')
 
     def save_log(self, file_path: str):
         # Save parameters and embedded proteins in a txt file
