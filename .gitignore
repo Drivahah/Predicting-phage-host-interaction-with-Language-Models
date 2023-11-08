@@ -89,3 +89,20 @@ data/external/
 
 # Mypy cache
 .mypy_cache/
+
+# Virtual environment
+./PH/
+PH/
+
+# .err and .out logs
+*.err
+*.out
+
+# bash jobs
+*.sh
+
+# Converted notebooks for the command line
+/notebooks/*.nbconvert.ipynb
+
+# End of notebook test
+/notebooks/*test.txt
