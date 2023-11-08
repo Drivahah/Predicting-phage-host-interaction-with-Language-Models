@@ -103,7 +103,8 @@ class PairingPredictor():
         # Initialize embedded_proteins
         self.embedded_proteins = {
             'phage': dict(),
-            'bacteria': dict()
+            'bacteria': dict(),
+            'paired': dict()
         }
 
         if self.actions['per_residue']:
