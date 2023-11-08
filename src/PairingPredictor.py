@@ -109,7 +109,7 @@ class PairingPredictor():
         if self.actions['per_residue']:
             self.embedded_proteins['phage']['residue_embs'] = []
             self.embedded_proteins['bacteria']['residue_embs'] = []
-            self.embedded_proteins['paired'] = dict()
+            self.embedded_proteins['paired']['residue_embs'] = []
 
             if self.log:
                 with open(self.log, 'a') as f:
@@ -119,7 +119,7 @@ class PairingPredictor():
         if self.actions['per_protein']:
             self.embedded_proteins['phage']['protein_embs'] = []
             self.embedded_proteins['bacteria']['protein_embs'] = []
-            self.embedded_proteins['paired'] = dict()
+            self.embedded_proteins['paired']['protein_embs'] = []
 
             if self.log:
                 with open(self.log, 'a') as f:
