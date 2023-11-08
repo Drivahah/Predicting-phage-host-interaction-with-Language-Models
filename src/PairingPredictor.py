@@ -9,7 +9,8 @@ from transformers import T5Tokenizer, T5EncoderModel
 
 
 class PairingPredictor():
-    def __init__(self, protein_pairs, debug=None, log=None):
+    # Get protein pairs file path
+    def __init__(self, df_path, debug=None, log=None):
         # Check that debug path exists
         if debug:
             # Create debug file stating time, creating folders if necessary
@@ -39,6 +40,9 @@ class PairingPredictor():
         }
 
         # Data
+        if not os.path.exists(df_path):
+            raise FileNotFoundError(f'{df_path} does not exist')
+        self.protein_pairs = pd.read_pickle(df_path)
         self.get_input(protein_pairs) # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
@@ -52,25 +56,25 @@ class PairingPredictor():
                 f.write(f'embed_batch_size: {self.embed_batch_size}\n')
                 f.write(f'models_config: {self.models_config}\n\n')
 
-    def get_input(self, protein_pairs: pd.DataFrame):
+    def get_input(self):
         # Check that protein_pairs is a DataFrame
-        if not isinstance(protein_pairs, pd.DataFrame):
+        if not isinstance(self.protein_pairs, pd.DataFrame):
             raise TypeError('protein_pairs must be a DataFrame')
         
         # Check that protein_pairs has the correct columns
-        if not all(col in protein_pairs.columns for col in ['seqID_phage', 'sequence_phage', 'seqID_k12', 'sequence_k12']):
+        if not all(col in self.protein_pairs.columns for col in ['seqID_phage', 'sequence_phage', 'seqID_k12', 'sequence_k12']):
             raise ValueError('protein_pairs must have the following columns: seqID_phage, sequence_phage, seqID_bacteria, sequence_bacteria')
 
         # Check that protein_pairs is not empty
-        if protein_pairs.empty:
+        if self.protein_pairs.empty:
             raise ValueError('protein_pairs is empty')
 
         if self.log:
             # Write number of proteins not null in a txt file
             with open(self.log, 'a') as f:
                 f.write(f'get_input' + '_' * 70 + '\n')
-                f.write(f"Number of phage proteins not null: {protein_pairs['sequence_phage'].notnull().sum()}\n")
-                f.write(f"Number of bacteria proteins not null: {protein_pairs['sequence_k12'].notnull().sum()}\n\n")
+                f.write(f"Number of phage proteins not null: {self.protein_pairs['sequence_phage'].notnull().sum()}\n")
+                f.write(f"Number of bacteria proteins not null: {self.protein_pairs['sequence_k12'].notnull().sum()}\n\n")
 
         # Sort protein pairs by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
@@ -81,10 +85,10 @@ class PairingPredictor():
             'phage': dict(),
             'bacteria': dict()
         }
-        self.input['phage']['seqID'] = protein_pairs['seqID_phage'].tolist()
-        self.input['phage']['sequence'] = protein_pairs['sequence_phage'].tolist()
-        self.input['bacteria']['seqID'] = protein_pairs['seqID_k12'].tolist()
-        self.input['bacteria']['sequence'] = protein_pairs['sequence_k12'].tolist()
+        self.input['phage']['seqID'] = self.protein_pairs['seqID_phage'].tolist()
+        self.input['phage']['sequence'] = self.protein_pairs['sequence_phage'].tolist()
+        self.input['bacteria']['seqID'] = self.protein_pairs['seqID_k12'].tolist()
+        self.input['bacteria']['sequence'] = self.protein_pairs['sequence_k12'].tolist()
 
         if self.debug:
             # Write number of proteins (seqID and sequence) in a txt file
@@ -197,16 +201,16 @@ class PairingPredictor():
             # Initialize embedded_proteins if it is empty
             if 'phage' not in self.embedded_proteins:
                 self.embedded_proteins['phage'] = dict()
-            if 'embedded_proteins' not in self.embedded_proteins['phage']:
-                self.embedded_proteins['phage']['protein_embs'] = []
+                if 'protein_embs' not in self.embedded_proteins['phage']:
+                    self.embedded_proteins['phage']['protein_embs'] = []
             if 'bacteria' not in self.embedded_proteins:
                 self.embedded_proteins['bacteria'] = dict()
-            if 'embedded_proteins' not in self.embedded_proteins['bacteria']:
-                self.embedded_proteins['bacteria']['protein_embs'] = []
+                if 'protein_embs' not in self.embedded_proteins['bacteria']:
+                    self.embedded_proteins['bacteria']['protein_embs'] = []
             if 'paired' not in self.embedded_proteins:
-                self.embedded_proteins['paired'] = dict()
-            if 'embedded_proteins' not in self.embedded_proteins['paired']:
-                self.embedded_proteins['paired']['protein_embs'] = []
+                    self.embedded_proteins['paired'] = dict()
+                if 'protein_embs' not in self.embedded_proteins['paired']:
+                    self.embedded_proteins['paired']['protein_embs'] = []
 
             if self.log:
                 with open(self.log, 'a') as f:
