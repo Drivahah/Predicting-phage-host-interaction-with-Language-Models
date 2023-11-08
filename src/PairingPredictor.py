@@ -7,7 +7,6 @@ import os
 from transformers import T5Tokenizer, T5EncoderModel
 
 
-
 class PairingPredictor():
     # Get protein pairs file path
     def __init__(self, df_path, debug=None, log=None):
@@ -43,7 +42,7 @@ class PairingPredictor():
         if not os.path.exists(df_path):
             raise FileNotFoundError(f'{df_path} does not exist')
         self.protein_pairs = pd.read_pickle(df_path)
-        self.get_input(protein_pairs) # Get input data
+        self.get_input() # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
         self.n_pairs = len(protein_pairs)
