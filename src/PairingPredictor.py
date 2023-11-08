@@ -197,9 +197,6 @@ class PairingPredictor():
         if os.path.exists(path):
             self.embedded_proteins = torch.load(path)
 
-            with open(self.log, 'a') as f:
-                f.write(f'Loaded proteins \n{self.embedded_proteins}\n')
-
             # Initialize embedded_proteins if it is empty
             if 'phage' not in self.embedded_proteins:
                 self.embedded_proteins['phage'] = dict()
@@ -411,7 +408,7 @@ class PairingPredictor():
                     f.write(f'Number of concatenated protein_embs: {len(self.embedded_proteins["paired"]["protein_embs"])}\n')
 
              # Save the concatenated embeddings
-            torch.save(self.embedded_proteins['paired'], path)
+            torch.save({'paired': self.embedded_proteins['paired']}, path)
 
             if self.log:
                 with open(self.log, 'a') as f:
