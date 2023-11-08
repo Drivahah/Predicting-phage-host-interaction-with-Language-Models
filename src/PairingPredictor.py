@@ -195,6 +195,9 @@ class PairingPredictor():
             if self.log:
                 with open(self.log, 'a') as f:
                     f.write(f'embedded_proteins loaded from {path}\n\n')
+                    f.write(f'Number of protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
+                    f.write(f'Number of paired: {len(self.embedded_proteins["paired"]["protein_embs"])}\n\n')
+                    f.write(f'Number of expected proteins: {self.n_pairs}\n')
 
         # If there is a mismatch in the number of proteins, and they were not concatenated
         if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
@@ -202,10 +205,7 @@ class PairingPredictor():
                 if os.path.exists(path) and self.log:
                     with open(self.log, 'a') as f:
                         f.write('Mismatch in the number of proteins and they were not concatenated\n')
-                        f.write(f'Number of protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
-                        f.write(f'Number of paired: {len(self.embedded_proteins["paired"])}\n\n')
-                        f.write(f'Number of expected proteins: {self.n_pairs}\n')
-                        f.write(f'Re-computing embeddings\n\n')
+                        f.write(f'Re-computing embeddings\n')
 
                 start = time.time()
 
@@ -226,8 +226,12 @@ class PairingPredictor():
 
                 if self.log:
                     with open(self.log, 'a') as f:
-                        f.write(f'embedded_proteins saved in {path}\n\n')
-
+                        f.write(f'embedded_proteins saved in {path}\n')
+            
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write('\n')
+                    
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
         if organism not in self.input.keys():
