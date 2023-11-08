@@ -518,8 +518,8 @@ class Classifier(PhageHostEmbedding):
 
         # If self.debug reduce the dataset to 100 pairs
         if self.debug:
-            X = X[:100]
-            y = y[:100]
+            X = X[:200]
+            y = y[:200]
 
         # Split X and y into train and test sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=self.test_size, random_state=self.random_state)
