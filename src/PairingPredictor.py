@@ -194,9 +194,10 @@ class PairingPredictor():
             self.embedded_proteins = torch.load(path)
             if self.log:
                 with open(self.log, 'a') as f:
-                    f.write(f'embedded_proteins loaded from {path}\n\n')
-                    f.write(f'Number of protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
-                    f.write(f'Number of paired: {len(self.embedded_proteins["paired"]["protein_embs"])}\n\n')
+                    f.write(f'embedded_proteins loaded from {path}\n')
+                    f.write(f'Number of phage protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
+                    f.write(f'Number of bacteria protein_embs: {len(self.embedded_proteins["bacteria"]["protein_embs"])}\n')
+                    f.write(f'Number of paired protein_embs: {len(self.embedded_proteins["paired"]["protein_embs"])}\n')
                     f.write(f'Number of expected proteins: {self.n_pairs}\n')
 
         # If there is a mismatch in the number of proteins, and they were not concatenated
@@ -228,10 +229,10 @@ class PairingPredictor():
                     with open(self.log, 'a') as f:
                         f.write(f'embedded_proteins saved in {path}\n')
             
-            if self.log:
-                with open(self.log, 'a') as f:
-                    f.write('\n')
-                    
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write('\n')
+
     def embed(self, organism: str, debug=False):
         # Check that organism is a valid organism
         if organism not in self.input.keys():
