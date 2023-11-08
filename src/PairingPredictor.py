@@ -401,17 +401,11 @@ class PairingPredictor():
                 with open(self.log, 'a') as f:
                     f.write(f'Concatenation has already been done\n\n')
 
-    def concatenate(self, embedding_type: str, separator=300000, debug=False, overwrite=False):
+    def concatenate(self, embedding_type: str, separator=300000, debug=False):
         # Check that embedding_type is a valid embedding_type
         if embedding_type not in self.embedded_proteins['phage'].keys():
             raise ValueError('embedding_type must be either "residue_embs" or "protein_embs"')
         
-        # If embedded_proteins['paired'] exists already, check if embedding_type is already concatenated
-        if 'paired' in self.embedded_proteins.keys():
-            if embedding_type in self.embedded_proteins['paired'].keys():
-                if not overwrite:
-                    raise ValueError(f'{embedding_type} has already been concatenated. Set overwrite to True to overwrite it')
-
         # Check that phage and bacteria embeddings have the same number of elements
         n_phage = len(self.embedded_proteins['phage'][embedding_type])
         n_bacteria = len(self.embedded_proteins['bacteria'][embedding_type])
