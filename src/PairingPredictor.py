@@ -7,8 +7,7 @@ import os
 from transformers import T5Tokenizer, T5EncoderModel
 
 
-class PairingPredictor():
-    # Get protein pairs file path
+class PhageHostEmbedding():
     def __init__(self, df_path, debug=None, log=None):
         # Check that debug path exists
         if debug:
@@ -417,7 +416,13 @@ class PairingPredictor():
         else:
             if self.log:
                 with open(self.log, 'a') as f:
-                    f.write(f'Concatenation has already been done\n\n')
+                    f.write(f'Concatenation has already been done\n')
+
+        # Add concatenated embeddings to self.protein_pairs
+        self.protein_pairs['paired_embs'] = self.embedded_proteins['paired']['protein_embs']
+        if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'paired_embs added to self.protein_pairs\n\n')
 
     def concatenate(self, embedding_type: str, separator=300000, debug=False):
         # Check that embedding_type is a valid embedding_type
@@ -461,3 +466,167 @@ class PairingPredictor():
             # Raise error if there is a length mismatch
             if len(self.embedded_proteins['paired'][embedding_type][i]) != len(phage) + len(separator) + len(bacteria):
                 raise ValueError(f'Length mismatch in concatenated {embedding_type} for self.input["phage"]["seqID"][{i}] and self.input["bacteria"]["seqID"][{i}], position {i}')                    
+
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from joblib import dump, load
+
+
+class Classifier(PhageHostEmbedding):
+    def __init__(self, df_path, debug=None, log=None):
+        super().__init__(df_path, debug, log)
+        
+        self.random_state = 42
+        self.test_size = 0.2
+        self.random_forest_parms = {
+            'random_state': self.random_state,
+            'class_weight': 'balanced',
+            'max_features': 'sqrt',
+            'min_samples_leaf': 1,
+            'min_samples_split': 2,
+            'n_estimators': 150,
+            'n_jobs': -1
+        }
+        self.model_directory = os.path.join('..', 'models')
+        if self.log:
+            # Save results in same directory as log
+            self.results_path = os.path.join(os.path.dirname(self.log), '3_results.txt')
+
+    def pad_sequences(self, sequences, padding_value=-3000):
+        # Get the length of the longest sequence
+        max_length = max(len(seq) for seq in sequences)
+
+        # Pad all sequences to the same length
+        padded_sequences = np.full((len(sequences), max_length), padding_value)
+        for i, seq in enumerate(sequences):
+            padded_sequences[i, :len(seq)] = seq
+
+        return padded_sequences
+    
+    def random_split(self):
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'random_split' + '_' * 70 + '\n')
+
+        # TODO: check if I need to discard any value from the embeddings
+
+        # Format X and y
+        X = self.pad_sequences(self.embedded_proteins['paired']['protein_embs'])
+        y = np.array(self.protein_pairs['pair'].tolist())
+
+        # If self.debug reduce the dataset to 100 pairs
+        if self.debug:
+            X = X[:100]
+            y = y[:100]
+
+        # Split X and y into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=self.test_size, random_state=self.random_state)
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train,
+            'y': y_train
+        }
+        self.test = {
+            'X': X_test,
+            'y': y_test
+        }
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'X_train shape: {self.train["X"].shape}\n')
+                f.write(f'y_train shape: {self.train["y"].shape}\n')
+                f.write(f'X_test shape: {self.test["X"].shape}\n')
+                f.write(f'y_test shape: {self.test["y"].shape}\n\n')
+
+    def classify(self, train=False):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'classify' + '_' * 70 + '\n')
+        
+        # Initialize classifier
+        clf = RandomForestClassifier(**self.random_forest_parms)
+
+        if train:
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'Starting classifier training\n')
+            
+            start = time.time()
+
+            # Train classifier
+            clf.fit(self.train['X'], self.train['y'])ù
+
+            end = time.time()
+
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'Classifier trained\n')
+                    f.write(f'Training time: {end - start} seconds\n')
+
+            # Save model
+            if not os.path.exists(self.model_directory):
+                os.makedirs(self.model_directory)
+            model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+            dump(clf, model_path)
+
+            if self.log:
+                with open(self.log, 'a') as f:
+                    f.write(f'Classifier saved in {model_path}\n')
+        
+        else:
+            try:
+                # Load model
+                model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+                clf = load(model_path)
+
+                if self.log:
+                    with open(self.log, 'a') as f:
+                        f.write(f'Classifier loaded from {model_path}\n')
+            except FileNotFoundError:
+                raise FileNotFoundError(f'Classifier not found in {model_path}')
+            
+
+        # Predict test set
+        y_pred = clf.predict(self.test['X'])
+
+        # Store results in a dict
+        self.results = {
+            'y_pred': y_pred,
+            'y_test': self.test['y']
+        }
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write('Predictions stored in self.results\n\n')
+
+        # Calculate statistics
+        accuracy = accuracy_score(self.results['y_test'], self.results['y_pred'])
+        precision = precision_score(self.results['y_test'], self.results['y_pred'])
+        recall = recall_score(self.results['y_test'], self.results['y_pred'])
+        f1 = f1_score(self.results['y_test'], self.results['y_pred'])
+        conf_matrix = confusion_matrix(self.results['y_test'], self.results['y_pred'])
+
+        # Store in results
+        self.results.update({
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'confusion_matrix': conf_matrix
+        })
+
+        # Store results in file
+        if self.results_path:
+            with open(self.results_path, 'w') as f:
+                f.write(f'accuracy: {accuracy}\n')
+                f.write(f'precision: {precision}\n')
+                f.write(f'recall: {recall}\n')
+                f.write(f'f1: {f1}\n')
+                f.write(f'confusion_matrix: {conf_matrix}\n')
