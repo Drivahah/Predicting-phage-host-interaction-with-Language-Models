@@ -205,8 +205,8 @@ class PairingPredictor():
                     f.write(f'Number of expected proteins: {self.n_pairs}\n')
 
         # If there is a mismatch in the number of proteins, and they were not concatenated
-        if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
-            if len(self.embedded_proteins['paired']['protein_embs']) != self.n_pairs:
+        if 'phage' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['phage'] and len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
+            if 'paired' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['paired'] and len(self.embedded_proteins['paired']['protein_embs']) != self.n_pairs:
                 if os.path.exists(path) and self.log:
                     with open(self.log, 'a') as f:
                         f.write('Mismatch in the number of proteins and they were not concatenated\n')
