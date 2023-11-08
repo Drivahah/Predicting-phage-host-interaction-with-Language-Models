@@ -228,7 +228,15 @@ class PairingPredictor():
                 if self.log:
                     with open(self.log, 'a') as f:
                         f.write(f'embedded_proteins saved in {path}\n')
-            
+
+            elif self.log:
+                with open(self.log, 'a') as f:
+                    f.write('Proteins concatenated already\n')
+
+        elif self.log:
+            with open(self.log, 'a') as f:
+                f.write('Proteins embedded already\n')
+
         if self.log:
             with open(self.log, 'a') as f:
                 f.write('\n')
