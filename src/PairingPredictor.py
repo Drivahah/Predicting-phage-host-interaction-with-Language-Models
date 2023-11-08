@@ -193,20 +193,32 @@ class PairingPredictor():
         # If specified path exists, load embedded_proteins from it
         if os.path.exists(path):
             self.embedded_proteins = torch.load(path)
+
+            # Initialize embedded_proteins if it is empty
+            if 'phage' not in self.embedded_proteins:
+                self.embedded_proteins['phage'] = dict()
+            if 'embedded_proteins' not in self.embedded_proteins['phage']:
+                self.embedded_proteins['phage']['protein_embs'] = []
+            if 'bacteria' not in self.embedded_proteins:
+                self.embedded_proteins['bacteria'] = dict()
+            if 'embedded_proteins' not in self.embedded_proteins['bacteria']:
+                self.embedded_proteins['bacteria']['protein_embs'] = []
+            if 'paired' not in self.embedded_proteins:
+                self.embedded_proteins['paired'] = dict()
+            if 'embedded_proteins' not in self.embedded_proteins['paired']:
+                self.embedded_proteins['paired']['protein_embs'] = []
+
             if self.log:
                 with open(self.log, 'a') as f:
                     f.write(f'embedded_proteins loaded from {path}\n')
-                    if 'phage' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['phage']:
-                        f.write(f'Number of phage protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
-                    if 'bacteria' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['bacteria']:
-                        f.write(f'Number of bacteria protein_embs: {len(self.embedded_proteins["bacteria"]["protein_embs"])}\n')
-                    if 'paired' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['paired']:
-                        f.write(f'Number of paired protein_embs: {len(self.embedded_proteins["paired"]["protein_embs"])}\n')
+                    f.write(f'Number of phage protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
+                    f.write(f'Number of bacteria protein_embs: {len(self.embedded_proteins["bacteria"]["protein_embs"])}\n')
+                    f.write(f'Number of paired protein_embs: {len(self.embedded_proteins["paired"]["protein_embs"])}\n')
                     f.write(f'Number of expected proteins: {self.n_pairs}\n')
 
         # If there is a mismatch in the number of proteins, and they were not concatenated
-        if 'phage' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['phage'] and len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
-            if 'paired' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['paired'] and len(self.embedded_proteins['paired']['protein_embs']) != self.n_pairs:
+        if len(self.embedded_proteins['phage']['protein_embs']) != self.n_pairs:
+            if len(self.embedded_proteins['paired']['protein_embs']) != self.n_pairs:
                 if os.path.exists(path) and self.log:
                     with open(self.log, 'a') as f:
                         f.write('Mismatch in the number of proteins and they were not concatenated\n')
@@ -368,8 +380,8 @@ class PairingPredictor():
 
     def concatenate_embeddings(self, path=None, debug=False, separator=300000):
         # Check that embedded_proteins has been loaded
-        if not self.embedded_proteins['phage'] or not self.embedded_proteins['bacteria']:
-            raise ValueError('embedded_proteins has not been loaded')
+        if 'phage' not in self.embedded_proteins or 'bacteria' not in self.embedded_proteins or 'paired' not in self.embedded_proteins:
+            raise ValueError('embedded_proteins has not been initialised')
 
         if self.log:
             with open(self.log, 'a') as f:
