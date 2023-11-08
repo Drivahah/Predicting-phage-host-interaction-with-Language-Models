@@ -45,7 +45,7 @@ class PairingPredictor():
         self.get_input() # Get input data
         self.init_embedded_proteins() # Initialize embedded_proteins
         self.output = []
-        self.n_pairs = len(protein_pairs)
+        self.n_pairs = len(self.protein_pairs)
 
         # Write parameters in the log file
         if log:
