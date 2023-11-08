@@ -236,7 +236,7 @@ class PairingPredictor():
 
                 if self.log:
                     with open(self.log, 'a') as f:
-                        f.write(f'Embedding time: {end - start} seconds\n\n')
+                        f.write(f'Embedding time: {end - start} seconds\n')
                         f.write(f'Number of phage protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
                         f.write(f'Number of bacteria protein_embs: {len(self.embedded_proteins["bacteria"]["protein_embs"])}\n')
 
