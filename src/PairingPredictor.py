@@ -561,7 +561,7 @@ class Classifier(PhageHostEmbedding):
             start = time.time()
 
             # Train classifier
-            clf.fit(self.train['X'], self.train['y'])ù
+            clf.fit(self.train['X'], self.train['y'])
 
             end = time.time()
 
