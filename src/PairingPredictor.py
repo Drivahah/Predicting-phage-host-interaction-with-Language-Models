@@ -198,7 +198,7 @@ class PairingPredictor():
             self.embedded_proteins = torch.load(path)
 
             with open(self.log, 'a') as f:
-                f.write(self.embedded_proteins)
+                f.write(f'Loaded proteins \n{self.embedded_proteins}\n')
 
             # Initialize embedded_proteins if it is empty
             if 'phage' not in self.embedded_proteins:
