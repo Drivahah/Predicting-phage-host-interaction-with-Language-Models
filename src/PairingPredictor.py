@@ -196,11 +196,11 @@ class PairingPredictor():
             if self.log:
                 with open(self.log, 'a') as f:
                     f.write(f'embedded_proteins loaded from {path}\n')
-                    if self.embedded_proteins['phage'] and self.embedded_proteins['phage']['protein_embs']:
+                    if 'phage' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['phage']:
                         f.write(f'Number of phage protein_embs: {len(self.embedded_proteins["phage"]["protein_embs"])}\n')
-                    if self.embedded_proteins['bacteria'] and self.embedded_proteins['bacteria']['protein_embs']:
+                    if 'bacteria' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['bacteria']:
                         f.write(f'Number of bacteria protein_embs: {len(self.embedded_proteins["bacteria"]["protein_embs"])}\n')
-                    if self.embedded_proteins['paired'] and self.embedded_proteins['paired']['protein_embs']:
+                    if 'paired' in self.embedded_proteins and 'protein_embs' in self.embedded_proteins['paired']:
                         f.write(f'Number of paired protein_embs: {len(self.embedded_proteins["paired"]["protein_embs"])}\n')
                     f.write(f'Number of expected proteins: {self.n_pairs}\n')
 
