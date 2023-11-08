@@ -208,7 +208,7 @@ class PairingPredictor():
                 if 'protein_embs' not in self.embedded_proteins['bacteria']:
                     self.embedded_proteins['bacteria']['protein_embs'] = []
             if 'paired' not in self.embedded_proteins:
-                    self.embedded_proteins['paired'] = dict()
+                self.embedded_proteins['paired'] = dict()
                 if 'protein_embs' not in self.embedded_proteins['paired']:
                     self.embedded_proteins['paired']['protein_embs'] = []
 
