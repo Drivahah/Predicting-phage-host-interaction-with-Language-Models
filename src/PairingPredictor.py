@@ -526,7 +526,7 @@ class Classifier(PhageHostEmbedding):
 
         return padded_sequences
     
-    def random_split(self):
+    def random_split(self, debug=False):
         if self.log:
             with open(self.log, 'a') as f:
                 f.write(f'random_split' + '_' * 70 + '\n')
@@ -538,7 +538,7 @@ class Classifier(PhageHostEmbedding):
         y = np.array(self.protein_pairs['pair'].tolist())
 
         # If self.debug reduce the dataset to 100 pairs
-        if self.debug:
+        if debug:
             X = X[:200]
             y = y[:200]
 
