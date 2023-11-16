@@ -273,7 +273,7 @@ class PhageHostEmbedding():
         
         if debug:
             # Write organism in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
                 f.write(f'embed_{organism}_____________________________________________________\n')
 
         seq_dict = self.input[organism]
@@ -292,7 +292,7 @@ class PhageHostEmbedding():
                 # Embed batch before the long sequence
                 if debug:
                     # Write number of proteins in batch in a txt file
-                    with open('PairingPredictor_debug.txt', 'a') as f:
+                    with open(self.debug, 'a') as f:
                         f.write(f'Number of proteins in batch: {len(batch)}\n')
                 if batch:
                     ids, seqs, seq_lens = zip(*batch)
@@ -305,7 +305,7 @@ class PhageHostEmbedding():
 
                     if debug:
                         # Write number of input_ids and attention_mask in a txt file
-                        with open('PairingPredictor_debug.txt', 'a') as f:
+                        with open(self.debug, 'a') as f:
                             f.write(f'Number of input_ids: {len(input_ids)}\n')
                             f.write(f'Number of attention_mask: {len(attention_mask)}\n')
                             f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
@@ -318,19 +318,19 @@ class PhageHostEmbedding():
                             embedding_repr = self.embedder(input_ids, attention_mask)
                             if debug:
                                 # Write len of sequence in a txt file
-                                with open('PairingPredictor_debug.txt', 'a') as f:
+                                with open(self.debug, 'a') as f:
                                     f.write(f'Embedding successful: Len of sequence: {seq_len}\n')
                     except RuntimeError:
                         print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
                         if debug:
                             # Write error in a txt file
-                            with open('PairingPredictor_debug.txt', 'a') as f:
+                            with open(self.debug, 'a') as f:
                                 f.write(f'                      RuntimeError during embedding for {id} (L={seq_len})\n')
                         continue
 
                     if debug:
                         # Write number of embedded proteins in a txt file
-                        with open('PairingPredictor_debug.txt', 'a') as f:
+                        with open(self.debug, 'a') as f:
                             f.write(f'Number of embedding_repr: {len(embedding_repr.last_hidden_state)}\n')
                             f.write(f'Len ids: {len(ids)}\n')
 
@@ -346,13 +346,22 @@ class PhageHostEmbedding():
 
                     if debug:
                         # Write number of embedded proteins in a txt file
-                        with open('PairingPredictor_debug.txt', 'a') as f:
+                        with open(self.debug, 'a') as f:
                             f.write(f'Number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n')
 
                 if seq_len > MAX_INPUT_LEN:
                     # Embed long sequence which was not added to batch
                     chunks = [seq[j:j+MAX_INPUT_LEN] for j in range(0, len(seq), MAX_INPUT_LEN)]
                     chunks = [" ".join(list(re.sub(r"[UZOB]", "X", chunk))) for chunk in chunks]
+                    
+                    if debug:
+                        # Write number of chunks in a txt file
+                        with open(self.debug, 'a') as f:
+                            f.write('seq_len > MAX_INPUT_LEN_____________________________________________________\n')
+                            f.write(f'Number of chunks: {len(chunks)}\n')
+                            f.write(f'Minimum sequence length in chunks: {min([len(seq) for seq in chunks])}\n')
+                            f.write(f'Maximum sequence length in chunks: {max([len(seq) for seq in chunks])}\n')
+                            f.write(f'First chunk: {chunks[0]}\n')
                     token_encoding = self.tokenizer.batch_encode_plus(chunks, add_special_tokens=True, padding="longest")
                     input_ids      = torch.tensor(token_encoding['input_ids']).to(self.device)
                     attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
@@ -367,7 +376,19 @@ class PhageHostEmbedding():
                     # Concatenate chunks
                     embedding_repr = embedding_repr.last_hidden_state
                     embedding_repr_list = [embedding_repr[x] for x in range(embedding_repr.size(0))]
+
+                    if debug:
+                        # Write number of embedded proteins in a txt file
+                        with open(self.debug, 'a') as f:
+                            f.write(f'Number of embedding_repr_list: {len(embedding_repr_list)}\n')
+
                     emb = torch.cat(embedding_repr_list, dim=0)
+
+                    if debug:
+                        # Write len of emb
+                        with open(self.debug, 'a') as f:
+                            f.write(f'Len of emb: {len(emb)}\n')
+
                     if self.actions['per_residue']:
                         self.embedded_proteins[organism]["residue_embs"].append(emb.detach().cpu().numpy().squeeze())
                     if self.actions['per_protein']:
@@ -376,7 +397,7 @@ class PhageHostEmbedding():
 
         if debug:
             # Write number of embedded proteins in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
                 f.write('\n')
                 f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
 
@@ -444,7 +465,7 @@ class PhageHostEmbedding():
         #       and it should help the model distinguish the two proteins
         if debug:
             # Write embedding_type in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
                 f.write(f'concatenate_{embedding_type}_____________________________________________________\n')
         
         separator = np.array([separator])  # Convert separator to a 1-dimensional array
@@ -454,7 +475,7 @@ class PhageHostEmbedding():
             bacteria = self.embedded_proteins['bacteria'][embedding_type][i]
             if debug:
                 # Write phage, separator and bacteria in a txt file
-                with open('PairingPredictor_debug.txt', 'a') as f:
+                with open(self.debug, 'a') as f:
                     f.write(f'phage: {phage}\n')
                     f.write(f'phage type: {type(phage)}\n')
                     f.write(f'separator: {separator}\n')
