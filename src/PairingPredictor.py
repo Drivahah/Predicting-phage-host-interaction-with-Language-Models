@@ -761,7 +761,7 @@ class Classifier(PhageHostEmbedding):
                                    verbose=2)
 
         # Fit the grid search to the data
-        grid_search.fit(self.X_train, self.y_train)
+        grid_search.fit(self.train['X'], self.train['y'])
 
         # Get the best parameters
         best_params = grid_search.best_params_
