@@ -573,7 +573,7 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'ADASYN' + '_' * 70 + '\n')
 
         # Initialize ADASYN
-        ada = ADASYN(sampling_strategy='float', n_neighbors=n_neighbours, random_state=self.random_state)
+        ada = ADASYN(n_neighbors=n_neighbours, random_state=self.random_state)
 
         # Resample train set
         # NB: Oversampling applied only to the training set. 
@@ -613,7 +613,7 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'SMOTE' + '_' * 70 + '\n')
 
         # Initialize SMOTE
-        sm = SMOTE(sampling_strategy='float', k_neighbors=n_neighbours, random_state=self.random_state)
+        sm = SMOTE(k_neighbors=n_neighbours, random_state=self.random_state)
 
         # Resample train set
         # NB: Oversampling applied only to the training set.
