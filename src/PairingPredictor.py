@@ -4,7 +4,7 @@ import torch
 import re
 import time
 import os
-from imblearn.over_sampling import ADASYN
+from imblearn.over_sampling import ADASYN, SMOTE
 from transformers import T5Tokenizer, T5EncoderModel
 
 
@@ -578,7 +578,13 @@ class Classifier(PhageHostEmbedding):
         # Resample train set
         # NB: Oversampling applied only to the training set. 
         #     The test set should be representative of the original distribution
-        X_train_res, y_train_res = ada.fit_resample(self.train['X'], self.train['y'])
+
+        # If self.original_train does not exist, use self.train
+        # Otherwise, use self.original_train
+        if not hasattr(self, 'original_train'):
+            X_train_res, y_train_res = ada.fit_resample(self.train['X'], self.train['y'])
+        else:
+            X_train_res, y_train_res = ada.fit_resample(self.original_train['X'], self.original_train['y'])
 
         # Copy original train set
         self.original_train = {
@@ -596,7 +602,46 @@ class Classifier(PhageHostEmbedding):
         if self.log:
             with open(self.log, 'a') as f:
                 f.write(f'ADASYN labeling balance: {np.unique(self.train["y"], return_counts=True)}\n\n')
+
+    def SMOTE(self, n_neighbours=5):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
         
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'SMOTE' + '_' * 70 + '\n')
+
+        # Initialize SMOTE
+        sm = SMOTE(sampling_strategy='float', k_neighbors=n_neighbours, random_state=self.random_state)
+
+        # Resample train set
+        # NB: Oversampling applied only to the training set.
+        #     The test set should be representative of the original distribution
+
+        # If self.original_train does not exist, use self.train
+        # Otherwise, use self.original_train
+        if not hasattr(self, 'original_train'):
+            X_train_res, y_train_res = sm.fit_resample(self.train['X'], self.train['y'])
+        else:
+            X_train_res, y_train_res = sm.fit_resample(self.original_train['X'], self.original_train['y'])
+
+        # Copy original train set
+        self.original_train = {
+            'X': self.train['X'],
+            'y': self.train['y']
+        }
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train_res,
+            'y': y_train_res
+        }
+
+        # Show labeling balance
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'SMOTE labeling balance: {np.unique(self.train["y"], return_counts=True)}\n\n')        
 
 
     def classify(self, train=False):
