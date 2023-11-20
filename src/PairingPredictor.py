@@ -491,8 +491,8 @@ class PhageHostEmbedding():
 
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, make_scorer
 from joblib import dump, load
 
 
@@ -514,7 +514,8 @@ class Classifier(PhageHostEmbedding):
         self.model_directory = os.path.join('..', 'models')
         if self.log:
             # Save results in same directory as log
-            self.results_path = os.path.join(os.path.dirname(self.log), '3_results.txt')
+            self.results_dir = os.path.dirname(self.log)
+            self.results_path = os.path.join(self.results_dir, '3_results.txt')
 
     def pad_sequences(self, sequences, padding_value=-3000):
         # Get the length of the longest sequence
@@ -733,3 +734,57 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'recall: {recall}\n')
                 f.write(f'f1: {f1}\n')
                 f.write(f'confusion_matrix: {conf_matrix}\n')
+
+    def grid_search(self):
+        # Define the parameter grid
+        param_grid = {
+            'max_features': ['auto', 'sqrt'],
+            'min_samples_leaf': [1, 2],
+            'min_samples_split': [2, 5],
+            'n_estimators': [100, 200]
+        }
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'grid_search' + '_' * 70 + '\n')
+                f.write(f'param_grid: {param_grid}\n')
+
+        # Initialize the grid search model
+        model = RandomForestClassifier(random_state=self.random_state, 
+                                       class_weight='balanced', 
+                                       n_jobs=-1)
+        grid_search = GridSearchCV(estimator=model,
+                                   param_grid=param_grid,
+                                   scoring=make_scorer(accuracy_score),
+                                   cv=5,
+                                   n_jobs=-1,
+                                   verbose=2)
+
+        # Fit the grid search to the data
+        grid_search.fit(self.X_train, self.y_train)
+
+        # Get the best parameters
+        best_params = grid_search.best_params_
+
+        # Update the model parameters
+        self.random_forest_parms.update(best_params)
+
+        # Save the best model
+        dump(grid_search.best_estimator_, 
+             os.path.join(self.model_directory, 'grid_best.pkl'))
+        
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'best_params: {best_params}\n')
+                f.write(f'best_estimator: {grid_search.best_estimator_}\n')
+                f.write(f'best model saved in {os.path.join(self.model_directory, "grid_best.pkl")}\n')
+
+        # Save the grid search results to a dataframe
+        results_df = pd.DataFrame(grid_search.cv_results_)
+
+        # Save the grid search results to a csv file
+        results_df.to_csv(os.path.join(self.results_dir, 'grid_search_results.csv'))
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'grid_search_results saved in {os.path.join(self.results_dir, "grid_search_results.csv")}\n\n')
