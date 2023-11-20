@@ -4,6 +4,7 @@ import torch
 import re
 import time
 import os
+from imblearn.over_sampling import ADASYN, SMOTE
 from transformers import T5Tokenizer, T5EncoderModel
 
 
@@ -561,6 +562,87 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'y_train shape: {self.train["y"].shape}\n')
                 f.write(f'X_test shape: {self.test["X"].shape}\n')
                 f.write(f'y_test shape: {self.test["y"].shape}\n\n')
+
+    def ADASYN(self, n_neighbours=5):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'ADASYN' + '_' * 70 + '\n')
+
+        # Initialize ADASYN
+        ada = ADASYN(n_neighbors=n_neighbours, random_state=self.random_state)
+
+        # Resample train set
+        # NB: Oversampling applied only to the training set. 
+        #     The test set should be representative of the original distribution
+
+        # If self.original_train does not exist, use self.train
+        # Otherwise, use self.original_train
+        if not hasattr(self, 'original_train'):
+            X_train_res, y_train_res = ada.fit_resample(self.train['X'], self.train['y'])
+        else:
+            X_train_res, y_train_res = ada.fit_resample(self.original_train['X'], self.original_train['y'])
+
+        # Copy original train set
+        self.original_train = {
+            'X': self.train['X'],
+            'y': self.train['y']
+        }
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train_res,
+            'y': y_train_res
+        }
+
+        # Show counts of labels
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')
+
+    def SMOTE(self, n_neighbours=5):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
+        
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'SMOTE' + '_' * 70 + '\n')
+
+        # Initialize SMOTE
+        sm = SMOTE(k_neighbors=n_neighbours, random_state=self.random_state)
+
+        # Resample train set
+        # NB: Oversampling applied only to the training set.
+        #     The test set should be representative of the original distribution
+
+        # If self.original_train does not exist, use self.train
+        # Otherwise, use self.original_train
+        if not hasattr(self, 'original_train'):
+            X_train_res, y_train_res = sm.fit_resample(self.train['X'], self.train['y'])
+        else:
+            X_train_res, y_train_res = sm.fit_resample(self.original_train['X'], self.original_train['y'])
+
+        # Copy original train set
+        self.original_train = {
+            'X': self.train['X'],
+            'y': self.train['y']
+        }
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train_res,
+            'y': y_train_res
+        }
+
+        # Show labeling balance
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')        
+
 
     def classify(self, train=False):
         # Check that train and test have been initialized
