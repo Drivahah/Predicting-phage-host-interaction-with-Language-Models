@@ -4,6 +4,7 @@ import torch
 import re
 import time
 import os
+from imblearn.over_sampling import ADASYN
 from transformers import T5Tokenizer, T5EncoderModel
 
 
@@ -561,6 +562,37 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'y_train shape: {self.train["y"].shape}\n')
                 f.write(f'X_test shape: {self.test["X"].shape}\n')
                 f.write(f'y_test shape: {self.test["y"].shape}\n\n')
+
+    def ADASYN(self, n_neighbours=5):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'ADASYN' + '_' * 70 + '\n')
+
+        # Initialize ADASYN
+        ada = ADASYN(sampling_strategy='float', n_neighbors=n_neighbours, random_state=self.random_state)
+
+        # Resample train set
+        # NB: Oversampling applied only to the training set. 
+        #     The test set should be representative of the original distribution
+        X_train_res, y_train_res = ada.fit_resample(self.train['X'], self.train['y'])
+
+        # Copy original train set
+        self.original_train = {
+            'X': self.train['X'],
+            'y': self.train['y']
+        }
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train_res,
+            'y': y_train_res
+        }
+        
+
 
     def classify(self, train=False):
         # Check that train and test have been initialized
