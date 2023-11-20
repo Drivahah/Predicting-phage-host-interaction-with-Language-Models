@@ -598,10 +598,10 @@ class Classifier(PhageHostEmbedding):
             'y': y_train_res
         }
 
-        # Show labeling balance
+        # Show counts of labels
         if self.log:
             with open(self.log, 'a') as f:
-                f.write(f'ADASYN labeling balance: {np.unique(self.train["y"], return_counts=True)}\n\n')
+                f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')
 
     def SMOTE(self, n_neighbours=5):
         # Check that train and test have been initialized
@@ -641,7 +641,7 @@ class Classifier(PhageHostEmbedding):
         # Show labeling balance
         if self.log:
             with open(self.log, 'a') as f:
-                f.write(f'SMOTE labeling balance: {np.unique(self.train["y"], return_counts=True)}\n\n')        
+                f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')        
 
 
     def classify(self, train=False):
