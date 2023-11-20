@@ -591,6 +591,11 @@ class Classifier(PhageHostEmbedding):
             'X': X_train_res,
             'y': y_train_res
         }
+
+        # Show labeling balance
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'ADASYN labeling balance: {np.unique(self.train["y"], return_counts=True)}\n\n')
         
 
 
