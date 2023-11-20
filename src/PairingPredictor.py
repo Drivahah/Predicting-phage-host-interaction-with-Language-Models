@@ -645,7 +645,7 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')        
 
 
-    def classify(self, train=False):
+    def classify(self, train=False, load_model='random_forest_classifier.pt'):
         # Check that train and test have been initialized
         if not hasattr(self, 'train') or not hasattr(self, 'test'):
             raise ValueError('train and test have not been initialized')
@@ -677,7 +677,7 @@ class Classifier(PhageHostEmbedding):
             # Save model
             if not os.path.exists(self.model_directory):
                 os.makedirs(self.model_directory)
-            model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+            model_path = os.path.join(self.model_directory, load_model)
             dump(clf, model_path)
 
             if self.log:
@@ -687,7 +687,7 @@ class Classifier(PhageHostEmbedding):
         else:
             try:
                 # Load model
-                model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+                model_path = os.path.join(self.model_directory, load_model)
                 clf = load(model_path)
 
                 if self.log:
