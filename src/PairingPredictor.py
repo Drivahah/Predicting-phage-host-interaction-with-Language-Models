@@ -735,14 +735,23 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'f1: {f1}\n')
                 f.write(f'confusion_matrix: {conf_matrix}\n')
 
-    def grid_search(self):
+    def grid_search(self, debug=False):
         # Define the parameter grid
-        param_grid = {
-            'max_features': ['auto', 'sqrt'],
-            'min_samples_leaf': [1, 2],
-            'min_samples_split': [2, 5],
-            'n_estimators': [100, 200]
-        }
+        if debug:
+            param_grid = {
+                'max_features': ['auto', 'sqrt'],
+                'min_samples_leaf': [1, 2],
+                'min_samples_split': [2, 5],
+                'n_estimators': [100, 200]
+            }
+        else:
+            param_grid = {
+                'criterion': ['gini', 'entropy', 'log_loss'],
+                'max_features': ['auto', 'sqrt'],
+                'min_samples_leaf': [1, 2, 4],
+                'min_samples_split': [2, 5, 10, 20],
+                'n_estimators': [100, 200, 400, 800, 1600, 3200, 6400, 12800]
+            }
 
         if self.log:
             with open(self.log, 'a') as f:
