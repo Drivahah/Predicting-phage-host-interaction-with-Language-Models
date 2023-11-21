@@ -664,8 +664,8 @@ class Classifier(PhageHostEmbedding):
 
             if self.debug:
                 with open(self.debug, 'a') as f:
-                    f.write(f'First 10 elements of train["X"]: {self.train["X"][:10]}\n')
-                    f.write(f'Sum of first 10 elements of train["X"]: {[sum(x) for x in self.train["X"][:10]]}\n')
+                    f.write(f'Last 10 elements of train["X"]: {self.train["X"][-10:]}\n')
+                    f.write(f'Sum of last 10 elements of train["X"]: {[sum(x) for x in self.train["X"][-10:]]}\n')
 
             # Train classifier
             clf.fit(self.train['X'], self.train['y'])
