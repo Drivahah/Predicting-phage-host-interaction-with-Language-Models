@@ -761,11 +761,11 @@ class Classifier(PhageHostEmbedding):
             }
         else:
             param_grid = {
-                'criterion': ['gini', 'entropy', 'log_loss'],
-                'max_features': ['auto', 'sqrt'],
-                'min_samples_leaf': [1],
-                'min_samples_split': [2],
-                'n_estimators': [25600, 51200]
+                'criterion': ['gini', 'entropy', 'log_loss'],  #gini, entropy, log_loss
+                'max_features': ['auto', 'sqrt'],  #auto, sqrt
+                'min_samples_leaf': [1, 2, 4, 8],
+                'min_samples_split': [2, 5, 10],
+                'n_estimators': [100, 200, 400, 800, 1600]
             }
 
         if self.log:
