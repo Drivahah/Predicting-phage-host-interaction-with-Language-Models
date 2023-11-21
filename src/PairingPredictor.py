@@ -748,9 +748,9 @@ class Classifier(PhageHostEmbedding):
             param_grid = {
                 'criterion': ['gini', 'entropy', 'log_loss'],
                 'max_features': ['auto', 'sqrt'],
-                'min_samples_leaf': [1, 2, 4],
-                'min_samples_split': [2, 5, 10, 20],
-                'n_estimators': [100, 200, 400, 800, 1600, 3200, 6400, 12800]
+                'min_samples_leaf': [1],
+                'min_samples_split': [2],
+                'n_estimators': [25600, 51200]
             }
 
         if self.log:
@@ -775,6 +775,9 @@ class Classifier(PhageHostEmbedding):
         # Get the best parameters
         best_params = grid_search.best_params_
 
+        # Get the tree depths
+        depths = [estimator.tree_.max_depth for estimator in grid_search.best_estimator_.estimators_]
+
         # Update the model parameters
         self.random_forest_parms.update(best_params)
 
@@ -785,6 +788,7 @@ class Classifier(PhageHostEmbedding):
         if self.log:
             with open(self.log, 'a') as f:
                 f.write(f'best_params: {best_params}\n')
+                f.write(f'depths: {depths}\n')
                 f.write(f'best_estimator: {grid_search.best_estimator_}\n')
                 f.write(f'best model saved in {os.path.join(self.model_directory, "grid_best.pkl")}\n')
 
