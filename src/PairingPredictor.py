@@ -521,9 +521,21 @@ class Classifier(PhageHostEmbedding):
         max_length = max(len(seq) for seq in sequences)
 
         # Pad all sequences to the same length
-        padded_sequences = np.full((len(sequences), max_length), padding_value)
+        padded_sequences = np.full((len(sequences), max_length), float(padding_value))
         for i, seq in enumerate(sequences):
             padded_sequences[i, :len(seq)] = seq
+
+        if self.debug:
+            # Write padded_sequences in a txt file
+            with open(self.debug, 'a') as f:
+                f.write(f'padded_sequences: {padded_sequences}\n')
+                f.write(f'padded_sequences shape: {padded_sequences.shape}\n')
+                f.write(f'padded_sequences type: {type(padded_sequences)}\n')
+                f.write(f'padded_sequences.dtype: {padded_sequences.dtype}\n')
+                f.write(f'padded_sequences[0]: {padded_sequences[0]}\n')
+                f.write(f'padded_sequences[0] shape: {padded_sequences[0].shape}\n')
+                f.write(f'padded_sequences[0] type: {type(padded_sequences[0])}\n')
+                f.write(f'padded_sequences[0] dtype: {padded_sequences[0].dtype}\n')
 
         return padded_sequences
     
