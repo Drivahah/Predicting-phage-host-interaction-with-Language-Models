@@ -491,10 +491,9 @@ class PhageHostEmbedding():
 
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, make_scorer
 from joblib import dump, load
-
 
 class Classifier(PhageHostEmbedding):
     def __init__(self, df_path, debug=None, log=None):
@@ -514,16 +513,29 @@ class Classifier(PhageHostEmbedding):
         self.model_directory = os.path.join('..', 'models')
         if self.log:
             # Save results in same directory as log
-            self.results_path = os.path.join(os.path.dirname(self.log), '3_results.txt')
+            self.results_dir = os.path.dirname(self.log)
+            self.results_path = os.path.join(self.results_dir, '3_results.txt')
 
     def pad_sequences(self, sequences, padding_value=-3000):
         # Get the length of the longest sequence
         max_length = max(len(seq) for seq in sequences)
 
         # Pad all sequences to the same length
-        padded_sequences = np.full((len(sequences), max_length), padding_value)
+        padded_sequences = np.full((len(sequences), max_length), float(padding_value))
         for i, seq in enumerate(sequences):
             padded_sequences[i, :len(seq)] = seq
+
+        if self.debug:
+            # Write padded_sequences in a txt file
+            with open(self.debug, 'a') as f:
+                f.write(f'padded_sequences: {padded_sequences}\n')
+                f.write(f'padded_sequences shape: {padded_sequences.shape}\n')
+                f.write(f'padded_sequences type: {type(padded_sequences)}\n')
+                f.write(f'padded_sequences.dtype: {padded_sequences.dtype}\n')
+                f.write(f'padded_sequences[0]: {padded_sequences[0]}\n')
+                f.write(f'padded_sequences[0] shape: {padded_sequences[0].shape}\n')
+                f.write(f'padded_sequences[0] type: {type(padded_sequences[0])}\n')
+                f.write(f'padded_sequences[0] dtype: {padded_sequences[0].dtype}\n')
 
         return padded_sequences
     
@@ -643,8 +655,7 @@ class Classifier(PhageHostEmbedding):
             with open(self.log, 'a') as f:
                 f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')        
 
-
-    def classify(self, train=False):
+    def classify(self, train=False, load_model='random_forest_classifier.pt'):
         # Check that train and test have been initialized
         if not hasattr(self, 'train') or not hasattr(self, 'test'):
             raise ValueError('train and test have not been initialized')
@@ -663,6 +674,11 @@ class Classifier(PhageHostEmbedding):
             
             start = time.time()
 
+            if self.debug:
+                with open(self.debug, 'a') as f:
+                    f.write(f'Last 10 elements of train["X"]: {self.train["X"][-10:]}\n')
+                    f.write(f'Sum of last 10 elements of train["X"]: {[sum(x) for x in self.train["X"][-10:]]}\n')
+
             # Train classifier
             clf.fit(self.train['X'], self.train['y'])
 
@@ -676,7 +692,7 @@ class Classifier(PhageHostEmbedding):
             # Save model
             if not os.path.exists(self.model_directory):
                 os.makedirs(self.model_directory)
-            model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+            model_path = os.path.join(self.model_directory, load_model)
             dump(clf, model_path)
 
             if self.log:
@@ -686,7 +702,7 @@ class Classifier(PhageHostEmbedding):
         else:
             try:
                 # Load model
-                model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+                model_path = os.path.join(self.model_directory, load_model)
                 clf = load(model_path)
 
                 if self.log:
@@ -733,3 +749,70 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'recall: {recall}\n')
                 f.write(f'f1: {f1}\n')
                 f.write(f'confusion_matrix: {conf_matrix}\n')
+
+    def grid_search(self, debug=False):
+        # Define the parameter grid
+        if debug:
+            param_grid = {
+                'max_features': ['auto', 'sqrt'],
+                'min_samples_leaf': [1, 2],
+                'min_samples_split': [2, 5],
+                'n_estimators': [100, 200]
+            }
+        else:
+            param_grid = {
+                'criterion': ['gini', 'entropy', 'log_loss'],  #gini, entropy, log_loss
+                'max_features': ['auto', 'sqrt'],  #auto, sqrt
+                'min_samples_leaf': [1, 2, 4, 8],
+                'min_samples_split': [2, 5, 10],
+                'n_estimators': [100, 200, 400, 800, 1600]
+            }
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'grid_search' + '_' * 70 + '\n')
+                f.write(f'param_grid: {param_grid}\n')
+
+        # Initialize the grid search model
+        model = RandomForestClassifier(random_state=self.random_state, 
+                                       class_weight='balanced', 
+                                       n_jobs=-1)
+        grid_search = GridSearchCV(estimator=model,
+                                   param_grid=param_grid,
+                                   scoring=make_scorer(accuracy_score),
+                                   cv=5,
+                                   n_jobs=-1,
+                                   verbose=2)
+
+        # Fit the grid search to the data
+        grid_search.fit(self.train['X'], self.train['y'])
+
+        # Get the best parameters
+        best_params = grid_search.best_params_
+
+        # Get the tree depths
+        depths = [estimator.tree_.max_depth for estimator in grid_search.best_estimator_.estimators_]
+
+        # Update the model parameters
+        self.random_forest_parms.update(best_params)
+
+        # Save the best model
+        dump(grid_search.best_estimator_, 
+             os.path.join(self.model_directory, 'grid_best.pkl'))
+        
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'best_params: {best_params}\n')
+                f.write(f'depths: {depths}\n')
+                f.write(f'best_estimator: {grid_search.best_estimator_}\n')
+                f.write(f'best model saved in {os.path.join(self.model_directory, "grid_best.pkl")}\n')
+
+        # Save the grid search results to a dataframe
+        results_df = pd.DataFrame(grid_search.cv_results_)
+
+        # Save the grid search results to a csv file
+        results_df.to_csv(os.path.join(self.results_dir, 'grid_search_results.csv'))
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'grid_search_results saved in {os.path.join(self.results_dir, "grid_search_results.csv")}\n\n')
