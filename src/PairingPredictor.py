@@ -495,7 +495,6 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, make_scorer
 from joblib import dump, load
 
-
 class Classifier(PhageHostEmbedding):
     def __init__(self, df_path, debug=None, log=None):
         super().__init__(df_path, debug, log)
@@ -644,7 +643,6 @@ class Classifier(PhageHostEmbedding):
             with open(self.log, 'a') as f:
                 f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')        
 
-
     def classify(self, train=False, load_model='random_forest_classifier.pt'):
         # Check that train and test have been initialized
         if not hasattr(self, 'train') or not hasattr(self, 'test'):
@@ -663,6 +661,10 @@ class Classifier(PhageHostEmbedding):
                     f.write(f'Starting classifier training\n')
             
             start = time.time()
+
+            if self.debug:
+                with open(self.debug, 'a') as f:
+                    f.write(f'First element of train["X"]: {self.train["X"][0]}\n')
 
             # Train classifier
             clf.fit(self.train['X'], self.train['y'])
