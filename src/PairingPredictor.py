@@ -5,7 +5,7 @@ import re
 import time
 import os
 from imblearn.over_sampling import ADASYN, SMOTE
-from transformers import T5Tokenizer, T5EncoderModel
+from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 
 
 class PhageHostEmbedding():
@@ -183,7 +183,14 @@ class PhageHostEmbedding():
                 # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
                 self.embedder.full() if self.device=='cpu' else self.embedder.half()
                 self.embedder.eval() # set model to eval mode, we don't want to train it
-
+        
+        if self.models_config['embedder'] == 'protxlnet':
+            # Load ProtXLNet tokenizer and model if self.tokenizer and self.embedder are not defined
+            if not hasattr(self, 'tokenizer') or not hasattr(self, 'embedder'):
+                self.tokenizer = XLNetTokenizer.from_pretrained('Rostlab/prot_xlnet', do_lower_case=False)
+                self.embedder = XLNetModel.from_pretrained('Rostlab/prot_xlnet').to(self.device)
+                self.embedder.eval() # set model to eval mode, we don't want to train it
+                
     def embed_pairs(self, path=None, debug=False):
         # Check that input has been loaded
         if not self.input:
@@ -280,6 +287,8 @@ class PhageHostEmbedding():
         seq_dict = self.input[organism]
         batch = list()
         MAX_INPUT_LEN = 300
+        if self.models_config['embedder'] == 'protxlnet':
+            MAX_INPUT_LEN = 1000000
         for i, (id, seq) in enumerate(zip(seq_dict['seqID'], seq_dict['sequence']), 1):
             # Format and append sequence to batch
             seq_len = len(seq)
