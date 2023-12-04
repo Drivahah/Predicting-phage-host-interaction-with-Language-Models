@@ -32,7 +32,7 @@ class PhageHostEmbedding():
             'per_residue': False,  # Beware of high memory consumption
             'per_protein': True
         }
-        self.embed_batch_size = 100
+        self.embed_batch_size = 1
         self.models_config = {
             'embedder': 't5_xl_u50',
             'device': 'cuda:0'
