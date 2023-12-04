@@ -234,6 +234,9 @@ class PhageHostEmbedding():
                         f.write('Mismatch in the number of proteins and they were not concatenated\n')
                         f.write(f'Re-computing embeddings\n')
 
+                        # Initialize embedded_proteins
+                        self.init_embedded_proteins()
+
                 start = time.time()
 
                 self.embed('phage', debug)
