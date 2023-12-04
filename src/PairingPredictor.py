@@ -286,7 +286,8 @@ class PhageHostEmbedding():
 
         seq_dict = self.input[organism]
         batch = list()
-        MAX_INPUT_LEN = 300
+        # MAX_INPUT_LEN = 300
+        MAX_INPUT_LEN = 300000
         if self.models_config['embedder'] == 'protxlnet':
             MAX_INPUT_LEN = 1000000
         for i, (id, seq) in enumerate(zip(seq_dict['seqID'], seq_dict['sequence']), 1):
