@@ -792,7 +792,8 @@ class Classifier(PhageHostEmbedding):
                                        n_jobs=-1)
         grid_search = GridSearchCV(estimator=model,
                                    param_grid=param_grid,
-                                   scoring=make_scorer(accuracy_score),
+                                   scoring=make_scorer(f1_score),
+                                   refit=True,
                                    cv=5,
                                    n_jobs=-1,
                                    verbose=2)
