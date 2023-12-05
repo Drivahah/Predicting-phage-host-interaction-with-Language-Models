@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, cross_val_score
-from sklearn.externals import joblib
+import joblib
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
 from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
@@ -34,7 +34,7 @@ parser.add_argument('--oversampling', type=str, choices=['smote', 'adasyn', 'non
 parser.add_argument('--grid_search', action='store_true', help='Whether to perform grid search for the pipeline')
 parser.add_argument('--param_grid', type=str, default='{}', help='Parameter grid for the grid search as a string')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for fine-tuning the embedder')
-parser.add_argument('--steps', type=int, default=10, help='Number of steps to train the embedder')
+parser.add_argument('--steps', type=int, default=10, help='Number of steps to train the embedder before freezing the parameters')
 parser.add_argument('--lr_embedder', type=float, default=0.01, help='Learning rate for the embedder')
 parser.add_argument('--lr_fine_tuned', type=float, default=0.001, help='Learning rate for the fine-tuned model')
 parser.add_argument('--batch_size', type=int, default=3, help='Batch size for embedding the data')
