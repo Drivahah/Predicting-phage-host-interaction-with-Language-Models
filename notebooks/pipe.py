@@ -23,6 +23,10 @@ from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 import logging
 # import ast
 
+# Set workiiing directory to file location
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
 
 # Print start in a file
 with open('A.txt', 'a') as f:
