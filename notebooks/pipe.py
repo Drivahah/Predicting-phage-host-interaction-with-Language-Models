@@ -4,11 +4,11 @@ import pandas as pd
 import torch
 import argparse
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModel
-from tensorflow.keras import layers
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input
+# from sentence_transformers import SentenceTransformer
+# from transformers import AutoTokenizer, AutoModel
+# from tensorflow.keras import layers
+# from tensorflow.keras.models import Model
+# from tensorflow.keras.layers import Input
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
@@ -18,10 +18,10 @@ import joblib
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
 from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
-from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import TensorDataset, DataLoader
+# from torch.optim.lr_scheduler import StepLR
+# from torch.utils.data import TensorDataset, DataLoader
 import logging
-import ast
+# import ast
 
 
 # Print start in a file
@@ -37,7 +37,7 @@ parser.add_argument('--load_embedder', action='store_true', help='Whether to loa
 parser.add_argument('--load_estimator', action='store_true', help='Whether to load pre-trained parameters for the final estimator')
 parser.add_argument('--oversampling', type=str, choices=['smote', 'adasyn', 'none'], default='none', help='Oversampling technique to use for imbalanced data')
 parser.add_argument('--grid_search', action='store_true', help='Whether to perform grid search for the pipeline')
-parser.add_argument('--param_grid', type=ast.literal_eval, default='{}', help='Parameter grid for the grid search as a string')
+parser.add_argument('--param_grid', type=str, default='{}', help='Parameter grid for the grid search as a string')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for fine-tuning the embedder')
 parser.add_argument('--steps', type=int, default=10, help='Number of steps to train the embedder before freezing the parameters')
 parser.add_argument('--lr_embedder', type=float, default=0.01, help='Learning rate for the embedder')
@@ -65,20 +65,48 @@ def load_data(df_path):
 
 
 # define the custom embedder classes
-class ProtT5Embedder(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name='Rostlab/prot_t5_xl_half_uniref50-enc', device='cuda:0'):
+class BaseEmbedder(BaseEstimator, TransformerMixin):
+    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=100, learning_rate=1e-3):
         # Set device and check if available
         if device == 'cuda:0' and not torch.cuda.is_available():
             raise RuntimeError('CUDA is not available')
             
         self.device = torch.device(device)
-        # load the model
-        self.model = SentenceTransformer(model_name).to(self.device)
+        self.fine_tune = fine_tune
+        self.num_epochs = num_epochs
+        self.num_steps = num_steps
+        self.learning_rate = learning_rate
+        self.model_name = model_name
+        # Load tokenizer and model
+        self.load_model_and_tokenizer()
+        # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
+        self.model.full() if self.device=='cpu' else self.model.half()
+        self.model.eval() # set model to eval mode, we don't want to train it
+        
+    def load_model_and_tokenizer(self):
+        raise NotImplementedError
     
     def fit(self, X, y=None):
+        if self.fine_tune:
+            self.model.train() # set model to training mode
+            optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
+            for epoch in range(self.num_epochs):
+                for step in range(self.num_steps):
+                    # get the batch
+                    batch = X[step]
+                    # encode the batch
+                    token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
+                    input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
+                    attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
+                    outputs = self.model(input_ids, attention_mask=attention_mask)
+                    loss = outputs.loss
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+            self.model.eval() # set model back to eval mode
         return self
-    
-    def transform(self, X, batch_size=32):
+
+    def transform(self, X, batch_size=3):
         # initialize an empty list to store the embeddings
         embeddings_list = []
         # loop over the batches
@@ -86,121 +114,27 @@ class ProtT5Embedder(BaseEstimator, TransformerMixin):
             # get the batch
             batch = X[i:i+batch_size]
             # encode the batch
-            embeddings = self.model.encode(batch)
+            token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
+            input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
+            attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
+            with torch.no_grad():
+                embeddings = self.model(input_ids, attention_mask=attention_mask).last_hidden_state.mean(dim=1).cpu().numpy()
             # append the embeddings to the list
             embeddings_list.append(embeddings)
-            # if quick run, break after the first batch
-            if args.quick:
-                break
         # concatenate the list to an array
         embeddings_array = np.concatenate(embeddings_list, axis=0)
         return embeddings_array
-    
-    def get_output_shape(self):
-        return self.model.get_sentence_embedding_dimension()
 
-class ProtXLNetEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name='Rostlab/prot_xlnet', device='cuda:0'):
-        # Set device and check if available
-        if device == 'cuda:0' and not torch.cuda.is_available():
-            raise RuntimeError('CUDA is not available')
-            
-        self.device = torch.device(device)
-        # load the tokenizer and the model
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name).to(self.device)
-    
-    def fit(self, X, y=None):
-        return self
-    
-    def transform(self, X, batch_size=32):
-        # initialize an empty list to store the embeddings
-        embeddings_list = []
-        # loop over the batches
-        for i in range(0, len(X), batch_size):
-            # get the batch
-            batch = X[i:i+batch_size]
-            # tokenize the batch
-            inputs = self.tokenizer(batch, return_tensors='pt', padding=True).to(self.device)
-            # get the last hidden state of the model
-            outputs = self.model(**inputs)
-            embeddings = outputs.last_hidden_state
-            # average the embeddings along the sequence dimension
-            embeddings = embeddings.mean(dim=1).detach().numpy()
-            # append the embeddings to the list
-            embeddings_list.append(embeddings)
-            # if quick run, break after the first batch
-            if args.quick:
-                break
-        # concatenate the list to an array
-        embeddings_array = np.concatenate(embeddings_list, axis=0)
-        return embeddings_array
-    
-    def get_output_shape(self):
-        return self.model.config.hidden_size
+class ProtT5Embedder(BaseEmbedder):
+    def load_model_and_tokenizer(self):
+        self.tokenizer = T5Tokenizer.from_pretrained(self.model_name, do_lower_case=False)
+        self.model = T5EncoderModel.from_pretrained(self.model_name).to(self.device)
 
-# define the fine-tuned embedder class
-class FineTunedEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, embedder, units=64, device='cuda:0', epochs=10, steps=10, lr_embedder=0.01, lr_fine_tuned=0.001):
-        # Set device and check if available
-        if device == 'cuda:0' and not torch.cuda.is_available():
-            raise RuntimeError('CUDA is not available')
-            
-        self.device = torch.device(device)
-        # set the embedder, the units, the epochs, and the steps
-        self.embedder = embedder
-        self.units = units
-        self.epochs = epochs
-        self.steps = steps
-        # create a loss function
-        self.loss_function = torch.nn.MSELoss()
-        # create a fine-tuned model with a dense layer
-        embeddings_shape = self.embedder.get_output_shape()
-        input_layer = Input(shape=(embeddings_shape[1],))
-        output_layer = layers.Dense(self.units, activation='relu')(input_layer)
-        self.fine_tuned_model = Model(input_layer, output_layer)
-        self.fine_tuned_model.to(self.device)
-        # create an optimizer for the embedder
-        self.optimizer_embedder = torch.optim.Adam(self.embedder.parameters(), lr=lr_embedder)
+class ProtXLNetEmbedder(BaseEmbedder):
+    def load_model_and_tokenizer(self):
+        self.tokenizer = XLNetTokenizer.from_pretrained(self.model_name, do_lower_case=False)
+        self.model = XLNetModel.from_pretrained(self.model_name).to(self.device)
 
-        # create an optimizer for the fine_tuned_model
-        self.optimizer_fine_tuned = torch.optim.Adam(self.fine_tuned_model.parameters(), lr=lr_fine_tuned)
-
-        # create a scheduler that changes the learning rate of the embedder after the steps
-        self.scheduler_embedder = StepLR(self.optimizer_embedder, step_size=self.steps, gamma=0, last_epoch=-1)
-    
-    def fit(self, X, y=None):
-        # # encode the input data using the embedder
-        # embeddings = self.embedder.transform(X)
-         # Assuming X and y are PyTorch tensors
-        dataset = TensorDataset(X, y)
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-        # loop over the epochs
-        for epoch in range(self.epochs):
-            # loop over the batches
-            for inputs, targets in dataloader:
-                # encode the inputs using the embedder
-                embeddings = self.embedder(inputs)
-                # get the predictions of the fine-tuned model
-                predictions = self.fine_tuned_model(embeddings)
-                # compute the loss
-                loss = self.loss_function(predictions, targets)
-                # zero the gradients
-                self.optimizer_embedder.zero_grad()
-                # backpropagate the loss
-                loss.backward()
-                # update the parameters
-                self.optimizer_embedder.step()
-                # update the learning rate
-                self.scheduler_embedder.step()
-        return self
-    
-    def transform(self, X, batch_size=32):
-        # encode the input data using the embedder
-        embeddings = self.embedder.transform(X, batch_size)
-        # get the predictions of the fine-tuned model
-        predictions = self.fine_tuned_model(embeddings)
-        return predictions
 
 # Print class defined in a file
 with open('A.txt', 'a') as f:
@@ -208,13 +142,9 @@ with open('A.txt', 'a') as f:
 
 # create the pipeline
 if args.embedder == 'prott5':
-    embedder = ProtT5Embedder(device=args.device)
+    embedder = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
 elif args.embedder == 'protxlnet':
-    embedder = ProtXLNetEmbedder(device=args.device)
-
-if args.fine_tune:
-    # add a fine-tuning step to the embedder
-    embedder = FineTunedEmbedder(embedder, epochs=args.epochs, steps=args.steps, lr_embedder=args.lr_embedder, lr_fine_tuned=args.lr_fine_tuned, device=args.device)
+    embedder = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
 
 if args.load_embedder:
     # load pre-trained parameters for the embedder
