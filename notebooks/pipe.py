@@ -5,7 +5,7 @@ import torch
 import argparse
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, TransformerClassifier
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
@@ -20,7 +20,6 @@ from imblearn.over_sampling import SMOTE, ADASYN
 from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import TensorDataset, DataLoader
-from transformer_classifier import TransformerClassifier
 import logging
 
 # Print start in a file
