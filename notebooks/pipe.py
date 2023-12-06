@@ -75,6 +75,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         if device == 'cuda:0' and not torch.cuda.is_available():
             raise RuntimeError('CUDA is not available')
             
+        self.device_str = device # Fix a bug when sklearn tries to clone the model
         self.device = torch.device(device)
         self.fine_tune = fine_tune
         self.num_epochs = num_epochs
