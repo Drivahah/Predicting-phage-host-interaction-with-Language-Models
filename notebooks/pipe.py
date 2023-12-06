@@ -5,7 +5,7 @@ import torch
 import argparse
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModel, TransformerClassifier
+from transformers import AutoTokenizer, AutoModel
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
@@ -21,6 +21,7 @@ from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import TensorDataset, DataLoader
 import logging
+
 
 # Print start in a file
 with open('A.txt', 'a') as f:
@@ -223,9 +224,9 @@ if args.estimator == 'logreg':
     estimator = LogisticRegression()
 elif args.estimator == 'rf':
     estimator = RandomForestClassifier()
-elif args.estimator == 'transformer':
-    # use a transformer model as the final estimator
-    estimator = TransformerClassifier(device=args.device)
+# elif args.estimator == 'transformer':
+#     # use a transformer model as the final estimator
+#     estimator = TransformerClassifier(device=args.device)
 
 if args.load_estimator:
     # load pre-trained parameters for the final estimator
