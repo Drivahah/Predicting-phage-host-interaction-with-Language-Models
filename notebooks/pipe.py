@@ -21,6 +21,7 @@ from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import TensorDataset, DataLoader
 import logging
+import ast
 
 
 # Print start in a file
@@ -36,7 +37,7 @@ parser.add_argument('--load_embedder', action='store_true', help='Whether to loa
 parser.add_argument('--load_estimator', action='store_true', help='Whether to load pre-trained parameters for the final estimator')
 parser.add_argument('--oversampling', type=str, choices=['smote', 'adasyn', 'none'], default='none', help='Oversampling technique to use for imbalanced data')
 parser.add_argument('--grid_search', action='store_true', help='Whether to perform grid search for the pipeline')
-parser.add_argument('--param_grid', type=str, default='{}', help='Parameter grid for the grid search as a string')
+parser.add_argument('--param_grid', type=ast.literal_eval, default='{}', help='Parameter grid for the grid search as a string')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for fine-tuning the embedder')
 parser.add_argument('--steps', type=int, default=10, help='Number of steps to train the embedder before freezing the parameters')
 parser.add_argument('--lr_embedder', type=float, default=0.01, help='Learning rate for the embedder')
