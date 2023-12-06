@@ -23,6 +23,10 @@ from torch.utils.data import TensorDataset, DataLoader
 from transformer_classifier import TransformerClassifier
 import logging
 
+# Print start in a file
+with open('A.txt', 'a') as f:
+    print('Start', file=f)
+
 # parse the command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--embedder', type=str, choices=['prott5', 'protxlnet'], default='prott5', help='Embedder to use')
@@ -42,6 +46,10 @@ parser.add_argument('--device', type=str, default='cuda:0', help='Device to use 
 parser.add_argument('--debug', action='store_true', help='Whether to enable debug logging')
 parser.add_argument('--quick', action='store_true', help='Run only on the first batch')
 args = parser.parse_args()
+
+# Print args parsed in a file
+with open('A.txt', 'a') as f:
+    print(args, file=f)
 
 def load_data(df_path):
     if not os.path.exists(df_path):
@@ -193,6 +201,9 @@ class FineTunedEmbedder(BaseEstimator, TransformerMixin):
         predictions = self.fine_tuned_model(embeddings)
         return predictions
 
+# Print class defined in a file
+with open('A.txt', 'a') as f:
+    print('Classes defined', file=f)
 
 # create the pipeline
 if args.embedder == 'prott5':
@@ -242,6 +253,9 @@ else:
         ('estimator', estimator)
     ])
 
+# Print pipeline defined in a file
+with open('A.txt', 'a') as f:
+    print('Pipeline defined', file=f)
 
 # create a logger object
 logger = logging.getLogger('pipeline')
@@ -288,3 +302,7 @@ else:
 # log the nested cross-validation scores and the mean score
 logger.info(f'Nested cross-validation scores: {scores}')
 logger.info(f'Mean score: {scores.mean()}')
+
+# Print end in a file
+with open('A.txt', 'a') as f:
+    print('End', file=f)
