@@ -77,6 +77,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             
         # self.device_str = device # Fix a bug when sklearn tries to clone the model
         # self.device = torch.device(device)
+        self.device = device
         self.fine_tune = fine_tune
         self.num_epochs = num_epochs
         self.num_steps = num_steps
@@ -92,7 +93,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         raise NotImplementedError
     
     def fit(self, X, y=None):
-        self.device = torch.device(device)
+        self.device = torch.device(self.device)
 
         if self.fine_tune:
             self.model.train() # set model to training mode
@@ -114,7 +115,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, batch_size=3):
-        self.device = torch.device(device)
+        self.device = torch.device(self.device)
         # initialize an empty list to store the embeddings
         embeddings_list = []
         # loop over the batches
