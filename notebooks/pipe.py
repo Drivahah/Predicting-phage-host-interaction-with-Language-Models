@@ -21,6 +21,7 @@ from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 # from torch.optim.lr_scheduler import StepLR
 # from torch.utils.data import TensorDataset, DataLoader
 import logging
+from transformers import AdamW
 # import ast
 
 # Set workiiing directory to file location
@@ -94,6 +95,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         self.device = torch.device(self.device)
+
 
         if self.fine_tune:
             self.model.train() # set model to training mode
@@ -232,7 +234,8 @@ if args.grid_search:
     grid = GridSearchCV(pipe, param_grid, cv=5)
     scores = cross_val_score(grid, X, y, cv=5)
     # log the best parameters and score from the grid search
-    logger.debug(f'Best parameters: {grid.best_params_}')
+    best_params = grid.best_estimator_.get_params()
+    logger.debug(f'Best parameters: {best_params}')
     logger.debug(f'Best score: {grid.best_score_}')
 else:
     # use the default parameters for the pipeline
