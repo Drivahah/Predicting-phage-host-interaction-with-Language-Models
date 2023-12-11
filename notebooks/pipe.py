@@ -234,7 +234,10 @@ if args.grid_search:
     grid = GridSearchCV(pipe, param_grid, cv=5)
     scores = cross_val_score(grid, X, y, cv=5)
     # log the best parameters and score from the grid search
-    best_params = grid.best_estimator_.get_params()
+    if hasattr(grid, 'best_params_'):
+        best_params = grid.best_params_
+    else:
+        best_params = grid.best_estimator_.get_params()
     logger.debug(f'Best parameters: {best_params}')
     logger.debug(f'Best score: {grid.best_score_}')
 else:
