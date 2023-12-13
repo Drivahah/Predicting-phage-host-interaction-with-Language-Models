@@ -166,7 +166,7 @@ elif args.embedder == 'protxlnet':
 column_transformer = ColumnTransformer(
     transformers=[
         ('embedder_phage', embedder_phage, 'sequence_phage'),
-        ('embedder_bacterial', embedder_bacterial, 'sequence_k12')
+        ('embedder_bacteria', embedder_bacteria, 'sequence_k12')
     ],
     remainder='drop'  # drop any columns not specified in transformers
 )
