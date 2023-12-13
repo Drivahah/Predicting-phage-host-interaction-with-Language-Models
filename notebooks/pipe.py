@@ -14,6 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, cross_val_score, StratifiedKFold
+from sklearn.compose import ColumnTransformer
 import joblib
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
@@ -69,7 +70,7 @@ def load_data(df_path):
     df.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
 
     # Return X, y columns as numpy arrays
-    return df['sequence_phage'].values, df['pair'].values
+    return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
 
 
 # define the custom embedder classes
@@ -156,9 +157,19 @@ with open('A.txt', 'a') as f:
 
 # create the pipeline
 if args.embedder == 'prott5':
-    embedder = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
+    embedder_phage = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
+    embedder_bacteria = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
 elif args.embedder == 'protxlnet':
-    embedder = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
+    embedder_phage = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
+    embedder_bacteria = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
+
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('embedder_phage', embedder_phage, 'sequence_phage'),
+        ('embedder_bacterial', embedder_bacterial, 'sequence_k12')
+    ],
+    remainder='drop'  # drop any columns not specified in transformers
+)
 
 # if args.load_embedder:
 #     # load pre-trained parameters for the embedder
@@ -180,21 +191,21 @@ elif args.estimator == 'rf':
 if args.oversampling == 'smote':
     # use SMOTE for imbalanced data
     pipe = ImbPipeline([
-        ('embedder', embedder),
+        ('column_transformer', column_transformer),
         ('smote', SMOTE()),
         ('estimator', estimator)
     ])
 elif args.oversampling == 'adasyn':
     # use ADASYN for imbalanced data
     pipe = ImbPipeline([
-        ('embedder', embedder),
+        ('column_transformer', column_transformer),
         ('adasyn', ADASYN()),
         ('estimator', estimator)
     ])
 else:
     # do not use any oversampling technique
     pipe = Pipeline([
-        ('embedder', embedder),
+        ('column_transformer', column_transformer),
         ('estimator', estimator)
     ])
 
