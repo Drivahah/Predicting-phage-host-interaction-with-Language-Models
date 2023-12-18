@@ -138,8 +138,15 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             batch = X[i:i+batch_size]
             # encode the batch
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
-            input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
-            attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
+            # Check if the return type is a tuple or dictionary
+            if isinstance(token_encoding, tuple):
+                input_ids = torch.tensor(token_encoding[0]).to(self.device)
+                attention_mask = torch.tensor(token_encoding[1]).to(self.device)
+            elif isinstance(token_encoding, dict):
+                input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
+                attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
+            else:
+                raise ValueError("Unexpected return type from batch_encode_plus")
             with torch.no_grad():
                 embeddings = self.model(input_ids, attention_mask=attention_mask).last_hidden_state.mean(dim=1).cpu().numpy()
             # append the embeddings to the list
