@@ -102,7 +102,9 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         self.device = torch.device(self.device)
-
+        # Convert X to a list if it is not already a list
+        if not isinstance(X, list):
+            X = X.tolist()
 
         if self.fine_tune:
             self.model.train() # set model to training mode
@@ -125,6 +127,9 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
 
     def transform(self, X, batch_size=3):
         self.device = torch.device(self.device)
+        # Convert X to a list if it is not already a list
+        if not isinstance(X, list):
+            X = X.tolist()
         # initialize an empty list to store the embeddings
         embeddings_list = []
         # loop over the batches
