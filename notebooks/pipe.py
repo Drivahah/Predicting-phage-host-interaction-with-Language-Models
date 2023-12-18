@@ -70,7 +70,8 @@ def load_data(df_path):
     df.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
 
     # Return X, y columns as numpy arrays
-    return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
+    # return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
+    return df[['sequence_phage', 'sequence_k12']], df['pair']
 
 
 # define the custom embedder classes
