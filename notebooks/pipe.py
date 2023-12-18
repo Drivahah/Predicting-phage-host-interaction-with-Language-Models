@@ -137,6 +137,9 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             # get the batch
             batch = X[i:i+batch_size]
             # encode the batch
+            # Print batch to a file
+            with open('A.txt', 'a') as f:
+                print(batch, file=f)
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
             # Check if the return type is a tuple or dictionary
             if isinstance(token_encoding, tuple):
