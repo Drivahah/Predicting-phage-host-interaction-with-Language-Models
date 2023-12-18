@@ -136,6 +136,10 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         for i in range(0, len(X), batch_size):
             # get the batch
             batch = X[i:i+batch_size]
+
+            # Each batch is a list of lists, so we need to flatten it
+            batch = [item for sublist in batch for item in sublist]
+
             # encode the batch
             # Print batch to a file
             with open('A.txt', 'a') as f:
