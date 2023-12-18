@@ -73,8 +73,7 @@ def load_data(df_path):
     df.reset_index(drop=True, inplace=True)
 
     # Return X, y columns as numpy arrays
-    # return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
-    return df[['sequence_phage', 'sequence_k12']], df['pair']
+    return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
 
 
 # define the custom embedder classes
@@ -167,10 +166,14 @@ elif args.embedder == 'protxlnet':
     embedder_phage = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
     embedder_bacteria = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
 
+# Get the column indices for the features you want to transform
+sequence_phage_col_index = 0
+sequence_k12_col_index = 1
+
 column_transformer = ColumnTransformer(
     transformers=[
-        ('embedder_phage', embedder_phage, 'sequence_phage'),
-        ('embedder_bacteria', embedder_bacteria, 'sequence_k12')
+        ('embedder_phage', embedder_phage, [sequence_phage_col_index]),
+        ('embedder_bacteria', embedder_bacteria, [sequence_k12_col_index]),
     ],
     remainder='drop'  # drop any columns not specified in transformers
 )
