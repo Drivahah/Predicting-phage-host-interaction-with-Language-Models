@@ -125,7 +125,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             self.model.eval() # set model back to eval mode
         return self
 
-    def transform(self, X, batch_size=3):
+    def transform(self, X, batch_size=1):
         self.device = torch.device(self.device)
         # Convert X to a list if it is not already a list
         if not isinstance(X, list):
