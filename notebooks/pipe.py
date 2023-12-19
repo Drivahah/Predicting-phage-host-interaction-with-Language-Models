@@ -78,7 +78,7 @@ def load_data(df_path):
 
 # define the custom embedder classes
 class BaseEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=100, learning_rate=1e-3):
+    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3):
         # Set device and check if available
         if device == 'cuda:0' and not torch.cuda.is_available():
             raise RuntimeError('CUDA is not available')
@@ -107,10 +107,13 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 X = X.tolist()
             self.model.train() # set model to training mode
             optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
+            if self.num_steps == 0:
+                self.num_steps = len(X)
+            batch_size = len(X) // self.num_steps
             for epoch in range(self.num_epochs):
                 for step in range(self.num_steps):
                     # get the batch
-                    batch = X[step]
+                    batch = X[step*batch_size:(step+1)*batch_size]
                     # encode the batch
                     token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
                     input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
