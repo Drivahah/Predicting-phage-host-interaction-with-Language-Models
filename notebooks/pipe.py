@@ -133,6 +133,11 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         # Convert X to a list if it is not already a list
         if not isinstance(X, list):
             X = X.tolist()
+
+        # Print X shape and first row to file
+        with open('A.txt', 'a') as f:
+            print('X shape', len(X), len(X[0]), file=f)
+            print('X first row', X[0], file=f)  
         # initialize an empty list to store the embeddings
         embeddings_list = []
         # loop over the batches
@@ -306,6 +311,10 @@ if args.train:
             inner_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
             grid = GridSearchCV(pipe, param_grid, cv=inner_cv)
+            # Print train sets shapes on a file
+            with open('A.txt', 'a') as f:
+                print('X_train', X_train.shape, 'y_train', y_train.shape, file=f)
+
             grid.fit(X_train, y_train)
 
             # Evaluate the best model on the test set
