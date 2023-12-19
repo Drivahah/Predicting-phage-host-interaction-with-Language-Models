@@ -100,11 +100,11 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
     
     def fit(self, X, y=None):
         self.device = torch.device(self.device)
-        # Convert X to a list if it is not already a list
-        if not isinstance(X, list):
-            X = X.tolist()
 
         if self.fine_tune:
+            # Convert X to a list if it is not already a list
+            if not isinstance(X, list):
+                X = X.tolist()
             self.model.train() # set model to training mode
             optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
             for epoch in range(self.num_epochs):
@@ -142,10 +142,11 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
             with torch.no_grad():
-                embeddings = self.model(input_ids, attention_mask=attention_mask).last_hidden_state.mean(dim=1).cpu().numpy()
+                embeddings = self.model(input_ids, attention_mask)
                 # print the shape of the embeddings to file
                 with open('A.txt', 'a') as f:
                     print(embeddings.shape, file=f)
+                embeddings = embeddings.last_hidden_state.mean(dim=1).cpu().numpy()
             # append the embeddings to the list
             embeddings_list.append(embeddings)
         # concatenate the list to an array
