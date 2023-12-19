@@ -147,11 +147,11 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
             with torch.no_grad():
-                embeddings = self.model(input_ids, attention_mask)
+                embeddings = self.model(input_ids, attention_mask).last_hidden_state
                 # print the shape of the embeddings to file
                 with open('A.txt', 'a') as f:
                     print(embeddings.shape, file=f)
-                embeddings = embeddings.last_hidden_state.mean(dim=1).cpu().numpy()
+                embeddings = embeddings.mean(dim=1).cpu().numpy()
             # append the embeddings to the list
             embeddings_list.append(embeddings)
             if args.quick:
