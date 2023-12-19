@@ -120,6 +120,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()
+                    if args.quick:
+                        break
             self.model.eval() # set model back to eval mode
         return self
 
@@ -149,6 +151,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 embeddings = embeddings.last_hidden_state.mean(dim=1).cpu().numpy()
             # append the embeddings to the list
             embeddings_list.append(embeddings)
+            if args.quick:
+                break
         # concatenate the list to an array
         embeddings_array = np.concatenate(embeddings_list, axis=0)
         return embeddings_array
