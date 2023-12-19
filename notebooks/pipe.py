@@ -79,12 +79,10 @@ def load_data(df_path):
 # define the custom embedder classes
 class BaseEmbedder(BaseEstimator, TransformerMixin):
     def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=100, learning_rate=1e-3):
-        # # Set device and check if available
-        # if device == 'cuda:0' and not torch.cuda.is_available():
-        #     raise RuntimeError('CUDA is not available')
+        # Set device and check if available
+        if device == 'cuda:0' and not torch.cuda.is_available():
+            raise RuntimeError('CUDA is not available')
             
-        # self.device_str = device # Fix a bug when sklearn tries to clone the model
-        # self.device = torch.device(device)
         self.device = device
         self.fine_tune = fine_tune
         self.num_epochs = num_epochs
@@ -134,28 +132,20 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         embeddings_list = []
         # loop over the batches
         for i in range(0, len(X), batch_size):
-            # get the batch
+            # Get the batch
             batch = X[i:i+batch_size]
-
             # Each batch is a list of lists, so we need to flatten it
             batch = [item for sublist in batch for item in sublist]
 
             # encode the batch
-            # Print batch to a file
-            with open('A.txt', 'a') as f:
-                print(batch, file=f)
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
-            # Check if the return type is a tuple or dictionary
-            # if isinstance(token_encoding, tuple):
-                # input_ids = torch.tensor(token_encoding[0]).to(self.device)
-                # attention_mask = torch.tensor(token_encoding[1]).to(self.device)
-            # elif isinstance(token_encoding, dict):
             input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
-            # else:
-            #     raise ValueError("Unexpected return type from batch_encode_plus")
             with torch.no_grad():
                 embeddings = self.model(input_ids, attention_mask=attention_mask).last_hidden_state.mean(dim=1).cpu().numpy()
+                # print the shape of the embeddings to file
+                with open('A.txt', 'a') as f:
+                    print(embeddings.shape, file=f)
             # append the embeddings to the list
             embeddings_list.append(embeddings)
         # concatenate the list to an array
