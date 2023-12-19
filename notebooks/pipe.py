@@ -107,6 +107,10 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 X = X.tolist()
             # Flatten X to be a list of strings
             X = [item[0] for item in X]
+            # Print X shape and first three rows to file
+            with open('A.txt', 'a') as f:
+                print('X shape', len(X), len(X[0]), file=f)
+                print('X first three rows', X[:3], file=f)
             self.model.train() # set model to training mode
             optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
             if self.num_steps == 0:
