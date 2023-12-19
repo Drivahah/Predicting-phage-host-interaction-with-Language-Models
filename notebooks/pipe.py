@@ -105,6 +105,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             # Convert X to a list if it is not already a list
             if not isinstance(X, list):
                 X = X.tolist()
+            # Flatten X to be a list of strings
+            X = [item[0] for item in X]
             self.model.train() # set model to training mode
             optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
             if self.num_steps == 0:
@@ -133,6 +135,9 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         # Convert X to a list if it is not already a list
         if not isinstance(X, list):
             X = X.tolist()
+
+        # Flatten X to be a list of strings
+        X = [item[0] for item in X]
 
         # Print X shape and first row to file
         with open('A.txt', 'a') as f:
