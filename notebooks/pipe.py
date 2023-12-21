@@ -160,9 +160,9 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             with open('A.txt', 'a') as f:
                 print('batch = C[i:i+batch_size]\n', batch, file=f)
             # Each batch is a list of lists, so we need to flatten it
-            batch = [item for sublist in batch for item in sublist]
-            with open('A.txt', 'a') as f:
-                print('batch = [item for sublist in batch for item in sublist]\n', batch, file=f)
+            # batch = [item for sublist in batch for item in sublist]
+            # with open('A.txt', 'a') as f:
+            #     print('batch = [item for sublist in batch for item in sublist]\n', batch, file=f)
 
             # encode the batch
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
@@ -197,6 +197,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 break
         # concatenate the list to an array
         embeddings_array = np.concatenate(embeddings_list, axis=0)
+        with open('A.txt', 'a') as f:
+            print('embeddings_array\n', embeddings_array, file=f)
         return embeddings_array
 
 class ProtT5Embedder(BaseEmbedder):
