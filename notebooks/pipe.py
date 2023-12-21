@@ -61,16 +61,20 @@ args = parser.parse_args()
 with open('A.txt', 'a') as f:
     print(args, file=f)
 
-def load_data(df_path):
+def load_data(df_path, quick):
     if not os.path.exists(df_path):
-            raise FileNotFoundError(f'{df_path} does not exist')
+        raise FileNotFoundError(f'{df_path} does not exist')
     df = pd.read_pickle(df_path)
-    # Sort by length of 'sequence_phage' and 'sequence_k12' columns
-    # It reduces the number of padding residues needed
-    df.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
+    # If quick is True, load just the first row of data
+    if quick:
+        df = df.head(1)
+    else:
+        # Sort by length of 'sequence_phage' and 'sequence_k12' columns
+        # It reduces the number of padding residues needed
+        df.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
 
-    # Reset the index to make it contiguous
-    df.reset_index(drop=True, inplace=True)
+        # Reset the index to make it contiguous
+        df.reset_index(drop=True, inplace=True)
 
     # Return X, y columns as numpy arrays
     return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
@@ -131,8 +135,6 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()
-                    if args.quick:
-                        break
             self.model.eval() # set model back to eval mode
         return self
 
@@ -195,8 +197,6 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                     embeddings_list.append(emb)
             with open('A.txt', 'a') as f:
                 print('embeddings_list\n', embeddings_list, file=f)
-            if args.quick:
-                break
         # concatenate the list to an array
         embeddings_array = np.concatenate(embeddings_list, axis=0)
         with open('A.txt', 'a') as f:
@@ -303,7 +303,7 @@ logger.info(f'Pipeline options: embedder={args.embedder}, fine_tune={args.fine_t
 # load the data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
 DATA_PATH = os.path.join(INPUT_FOLDER, '2_model_df.pkl')
-X, y = load_data(DATA_PATH)
+X, y = load_data(DATA_PATH, args.quick)
 # log the data shape
 logger.info(f'Data shape: X={X.shape}, y={y.shape}')
 
