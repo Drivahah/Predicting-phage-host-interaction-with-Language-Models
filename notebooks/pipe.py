@@ -185,6 +185,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 for batch_index in range(len(batch)):
                     emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]
                     emb = emb.mean(dim=0).detach().cpu().numpy().squeeze()
+                    # Wrap the 1D array into a 2D array
+                    emb = emb.reshape(1, -1)
                     # print the shape of the embeddings to file
                     with open('A.txt', 'a') as f:
                         # print('emb_shape: ', emb.shape, file=f)
