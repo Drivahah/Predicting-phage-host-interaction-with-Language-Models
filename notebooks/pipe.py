@@ -164,7 +164,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 embeddings = self.model(input_ids, attention_mask).last_hidden_state
                 # print the shape of the embeddings to file
                 with open('A.txt', 'a') as f:
-                    print(embeddings.shape, file=f)
+                    print('embeddings_shape: ', embeddings.shape, file=f)
                     print('embeddings', embeddings, file=f)
                 embeddings = embeddings.mean(dim=1).cpu().numpy()
             # append the embeddings to the list
