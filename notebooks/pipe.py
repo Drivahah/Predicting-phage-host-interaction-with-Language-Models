@@ -179,7 +179,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 # print the shape of the embeddings to file
                 with open('A.txt', 'a') as f:
                     print('embeddings = self.model', file=f)
-                    print('embeddings_shape: ', embeddings.shape, file=f)
+                    # print('embeddings_shape: ', embeddings.shape, file=f)
                     print('embeddings\n', embeddings, file=f)
 
                 for batch_index in range(len(batch)):
@@ -187,8 +187,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                     emb = emb.mean(dim=0).detach().cpu().numpy().squeeze()
                     # print the shape of the embeddings to file
                     with open('A.txt', 'a') as f:
-                        print('emb_shape: ', embeddings.shape, file=f)
-                        print('emb\n', embeddings, file=f)
+                        # print('emb_shape: ', emb.shape, file=f)
+                        print('emb\n', emb, file=f)
                     # append the embeddings to the list
                     embeddings_list.append(emb)
             with open('A.txt', 'a') as f:
