@@ -78,7 +78,7 @@ def load_data(df_path):
 
 # define the custom embedder classes
 class BaseEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3):
+    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3,org='phage'):
         # Set device and check if available
         if device == 'cuda:0' and not torch.cuda.is_available():
             raise RuntimeError('CUDA is not available')
@@ -94,6 +94,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
         self.model.full() if self.device=='cpu' else self.model.half()
         self.model.eval() # set model to eval mode, we don't want to train it
+
+        self.org = org
         
     def load_model_and_tokenizer(self):
         raise NotImplementedError
@@ -135,6 +137,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, batch_size=1):
+        with open('A.txt', 'a') as f:
+            print('org', self.org, file=f)
         self.device = torch.device(self.device)
         # Convert X to a list if it is not already a list
         if not isinstance(X, list):
@@ -153,22 +157,42 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         for i in range(0, len(X), batch_size):
             # Get the batch
             batch = X[i:i+batch_size]
+            with open('A.txt', 'a') as f:
+                print('batch = C[i:i+batch_size]\n', batch, file=f)
             # Each batch is a list of lists, so we need to flatten it
             batch = [item for sublist in batch for item in sublist]
+            with open('A.txt', 'a') as f:
+                print('batch = [item for sublist in batch for item in sublist]\n', batch, file=f)
 
             # encode the batch
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
+            with open('A.txt', 'a') as f:
+                print('token_encoding\n', token_encoding, file=f)
             input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
+            with open('A.txt', 'a') as f:
+                print('input_ids\n', input_ids, file=f)
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
+            with open('A.txt', 'a') as f:
+                print('attention_mask\n', attention_mask, file=f)
             with torch.no_grad():
-                embeddings = self.model(input_ids, attention_mask).last_hidden_state
+                embeddings = self.model(input_ids, attention_mask)
                 # print the shape of the embeddings to file
                 with open('A.txt', 'a') as f:
+                    print('embeddings = self.model', file=f)
                     print('embeddings_shape: ', embeddings.shape, file=f)
-                    print('embeddings', embeddings, file=f)
-                embeddings = embeddings.mean(dim=1).cpu().numpy()
-            # append the embeddings to the list
-            embeddings_list.append(embeddings)
+                    print('embeddings\n', embeddings, file=f)
+
+                for batch_index in range(len(batch)):
+                    emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]
+                    emb = emb.mean(dim=0).detach().cpu().numpy().squeeze()
+                    # print the shape of the embeddings to file
+                    with open('A.txt', 'a') as f:
+                        print('emb_shape: ', embeddings.shape, file=f)
+                        print('emb\n', embeddings, file=f)
+                    # append the embeddings to the list
+                    embeddings_list.append(emb)
+            with open('A.txt', 'a') as f:
+                print('embeddings_list\n', embeddings_list, file=f)
             if args.quick:
                 break
         # concatenate the list to an array
@@ -193,10 +217,10 @@ with open('A.txt', 'a') as f:
 # create the pipeline
 if args.embedder == 'prott5':
     embedder_phage = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
-    embedder_bacteria = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
+    embedder_bacteria = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device, org='bacteria')
 elif args.embedder == 'protxlnet':
     embedder_phage = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
-    embedder_bacteria = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
+    embedder_bacteria = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device, org='bacteria')
 
 # Get the column indices for the features you want to transform
 sequence_phage_col_index = 0
