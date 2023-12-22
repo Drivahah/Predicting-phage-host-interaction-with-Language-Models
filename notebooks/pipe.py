@@ -61,13 +61,17 @@ args = parser.parse_args()
 with open('A.txt', 'a') as f:
     print(args, file=f)
 
-def load_data(df_path, quick):
+def load_data(df_path, quick, splits=dict()):
     if not os.path.exists(df_path):
         raise FileNotFoundError(f'{df_path} does not exist')
     df = pd.read_pickle(df_path)
     # If quick is True, load just the first row of data
     if quick:
-        df = df.head(1)
+        # Define number of samples as products of splits values
+        num_samples = 1
+        for value in splits.values():
+            num_samples *= value
+        df = df.head(num_samples)
     else:
         # Sort by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
@@ -303,7 +307,12 @@ logger.info(f'Pipeline options: embedder={args.embedder}, fine_tune={args.fine_t
 # load the data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
 DATA_PATH = os.path.join(INPUT_FOLDER, '2_model_df.pkl')
-X, y = load_data(DATA_PATH, args.quick)
+splits = {
+    'inner': 5,
+    'outer': 5
+}
+
+X, y = load_data(DATA_PATH, args.quick, splits)
 # log the data shape
 logger.info(f'Data shape: X={X.shape}, y={y.shape}')
 
@@ -337,7 +346,7 @@ if args.train:
     best_params = None
 
     # Outer cross-validation
-    outer_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    outer_cv = StratifiedKFold(n_splits=splits['outer'], shuffle=True, random_state=42)
     outer_scores = []
 
     for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
@@ -346,8 +355,7 @@ if args.train:
 
         if args.grid_search:
             # Inner cross-validation for grid search
-            inner_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
+            inner_cv = StratifiedKFold(n_splits=splits['inner'], shuffle=True, random_state=42)
             grid = GridSearchCV(pipe, param_grid, cv=inner_cv)
             # Print train sets shapes on a file
             with open('A.txt', 'a') as f:
