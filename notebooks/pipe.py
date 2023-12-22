@@ -71,6 +71,7 @@ def load_data(df_path, quick, splits=dict()):
         num_samples = 1
         for value in splits.values():
             num_samples *= value
+            num_samples += num_samples // 4
         df = df.head(num_samples)
     else:
         # Sort by length of 'sequence_phage' and 'sequence_k12' columns
