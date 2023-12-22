@@ -68,11 +68,13 @@ def load_data(df_path, quick, splits=dict()):
     # If quick is True, load just the first row of data
     if quick:
         # Define number of samples as products of splits values
-        num_samples = 1
-        for value in splits.values():
-            num_samples *= value
-            num_samples += num_samples // 4
-        df = df.head(num_samples)
+        # num_samples = 1
+        # for value in splits.values():
+        #     num_samples *= value
+        #     num_samples += num_samples // 4
+        # df = df.head(num_samples)
+
+        df = df.head(100)
     else:
         # Sort by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
