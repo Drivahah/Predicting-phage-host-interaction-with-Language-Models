@@ -15,8 +15,8 @@ def random_seq(length):
 # The phage column has random sequences of length between 5 and 25
 # The k12 column has random sequences of length between 5 and 25
 
-df = pd.DataFrame({'phage': [random_seq(random.randint(5,25)) for i in range(100)],
-                     'k12': [random_seq(random.randint(5,25)) for i in range(100)]})
+df = pd.DataFrame({'sequence_phage': [random_seq(random.randint(5,25)) for i in range(100)],
+                     'sequence_k12': [random_seq(random.randint(5,25)) for i in range(100)]})
 
 # Define savedir data/interim using os
 savedir = os.path.join('data', 'interim')
