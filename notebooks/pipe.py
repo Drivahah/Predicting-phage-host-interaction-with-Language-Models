@@ -329,8 +329,8 @@ logger.info(f'Pipeline options: embedder={args.embedder}, fine_tune={args.fine_t
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
 DATA_PATH = os.path.join(INPUT_FOLDER, '2_model_df.pkl')
 splits = {
-    'inner': 5,
-    'outer': 5
+    'inner': 3,
+    'outer': 3
 }
 
 X, y = load_data(DATA_PATH, args.quick, splits)
