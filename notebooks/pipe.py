@@ -64,18 +64,12 @@ with open('A.txt', 'a') as f:
 def load_data(df_path, quick, splits=dict()):
     if not os.path.exists(df_path):
         raise FileNotFoundError(f'{df_path} does not exist')
-    df = pd.read_pickle(df_path)
-    # If quick is True, load just the first row of data
+    # If quick is True, load the test df
     if quick:
-        # Define number of samples as products of splits values
-        # num_samples = 1
-        # for value in splits.values():
-        #     num_samples *= value
-        #     num_samples += num_samples // 4
-        # df = df.head(num_samples)
-
-        df = df.head(100)
+        df_dir = os.path.join('..', 'data', 'interim')
+        df = pd.read_pickle(os.path.join(df_dir, 'test_df.pkl'))
     else:
+        df = pd.read_pickle(df_path)
         # Sort by length of 'sequence_phage' and 'sequence_k12' columns
         # It reduces the number of padding residues needed
         df.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
