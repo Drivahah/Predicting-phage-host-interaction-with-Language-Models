@@ -55,6 +55,7 @@ parser.add_argument('--batch_size', type=int, default=3, help='Batch size for em
 parser.add_argument('--device', type=str, default='cuda:0', help='Device to use for the models')
 parser.add_argument('--debug', action='store_true', help='Whether to enable debug logging')
 parser.add_argument('--quick', action='store_true', help='Run only on the first batch')
+parser.add_argument('--SP', type=str, choices=['parallel', 'sequential'], default='sequential', help='Whether to embed the sequences in parallel or sequentially')
 args = parser.parse_args()
 
 # Print args parsed in a file
@@ -214,6 +215,26 @@ class ProtXLNetEmbedder(BaseEmbedder):
         self.tokenizer = XLNetTokenizer.from_pretrained(self.model_name, do_lower_case=False)
         self.model = XLNetModel.from_pretrained(self.model_name).to(self.device)
 
+class SequentialEmbedder(BaseEstimator, TransformerMixin):
+    def __init__(self, embedder_phage, embedder_bacteria):
+        self.embedder_phage = embedder_phage
+        self.embedder_bacteria = embedder_bacteria
+
+    def fit(self, X, y=None):
+        # Fit the first embedder
+        self.embedder_phage.fit(X[:, 0], y)
+        # Fit the second embedder
+        self.embedder_bacteria.fit(X[:, 1], y)
+        return self
+
+    def transform(self, X):
+        # Transform the first column
+        embeddings_phage = self.embedder_phage.transform(X[:, 0])
+        # Transform the second column
+        embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1])
+        # Concatenate the results
+        return np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
+
 
 # Print class defined in a file
 with open('A.txt', 'a') as f:
@@ -231,13 +252,16 @@ elif args.embedder == 'protxlnet':
 sequence_phage_col_index = 0
 sequence_k12_col_index = 1
 
-column_transformer = ColumnTransformer(
-    transformers=[
-        ('embedder_phage', embedder_phage, [sequence_phage_col_index]),
-        ('embedder_bacteria', embedder_bacteria, [sequence_k12_col_index]),
-    ],
-    remainder='drop'  # drop any columns not specified in transformers
-)
+if args.SP == 'parallel':
+    column_transformer = ColumnTransformer(
+        transformers=[
+            ('embedder_phage', embedder_phage, [sequence_phage_col_index]),
+            ('embedder_bacteria', embedder_bacteria, [sequence_k12_col_index]),
+        ],
+        remainder='drop'  # drop any columns not specified in transformers
+    )
+elif args.SP == 'sequential':
+    column_transformer = SequentialEmbedder(embedder_phage, embedder_bacteria)
 
 # if args.load_embedder:
 #     # load pre-trained parameters for the embedder
@@ -299,7 +323,7 @@ file_handler.setFormatter(formatter)
 # add the file handler to the logger
 logger.addHandler(file_handler)
 # log the pipeline options
-logger.info(f'Pipeline options: embedder={args.embedder}, fine_tune={args.fine_tune}, estimator={args.estimator}, train={args.train}, grid_search={args.grid_search}, param_grid={args.param_grid}, epochs={args.epochs}, steps={args.steps}, lr_embedder={args.lr_embedder}, lr_fine_tuned={args.lr_fine_tuned}, batch_size={args.batch_size}, device={args.device}, debug={args.debug}, quick={args.quick}')
+logger.info(f'Pipeline options: embedder={args.embedder}, fine_tune={args.fine_tune}, estimator={args.estimator}, train={args.train}, grid_search={args.grid_search}, param_grid={args.param_grid}, epochs={args.epochs}, steps={args.steps}, lr_embedder={args.lr_embedder}, lr_fine_tuned={args.lr_fine_tuned}, batch_size={args.batch_size}, device={args.device}, debug={args.debug}, quick={args.quick}, SP={args.SP}')
 
 # load the data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
