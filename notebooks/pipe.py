@@ -27,11 +27,9 @@ parser.add_argument('--estimator', type=str, choices=['logreg', 'rf', 'transform
 parser.add_argument('--train', action='store_true', help='Whether to train the whole model')
 parser.add_argument('--grid_search', action='store_true', help='Whether to perform grid search for the pipeline')
 parser.add_argument('--param_grid', type=str, default='{}', help='Parameter grid for the grid search as a string')
-parser.add_argument('--predict', type=str, help='Specify the pre-trained model to use to predict on the given data')
+parser.add_argument('--predict', type=str, default=None, help='Specify the pre-trained model to use to predict on the given data')
 parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for fine-tuning the embedder')
 parser.add_argument('--steps', type=int, default=10, help='Number of steps to train the embedder before freezing the parameters')
-parser.add_argument('--lr_embedder', type=float, default=0.01, help='Learning rate for the embedder')
-parser.add_argument('--lr_fine_tuned', type=float, default=0.001, help='Learning rate for the fine-tuned model')
 parser.add_argument('--batch_size', type=int, default=3, help='Batch size for embedding the data')
 parser.add_argument('--device', type=str, default='cuda:0', help='Device to use for the models')
 parser.add_argument('--debug', action='store_true', help='Whether to enable debug logging')
@@ -64,10 +62,9 @@ logger.info(f'Pipeline args: \
     train={args.train}, \
     grid_search={args.grid_search}, \
     param_grid={args.param_grid}, \
+    predict={args.predict}, \
     epochs={args.epochs}, \
     steps={args.steps}, \
-    lr_embedder={args.lr_embedder}, \
-    lr_fine_tuned={args.lr_fine_tuned}, \
     batch_size={args.batch_size}, \
     device={args.device}, \
     debug={args.debug}, \
@@ -133,6 +130,9 @@ logger.debug(f'y[:5]:\n {y[:5]}')
 # (Nested) cross-validation
 param_grid = eval(args.param_grid) # convert the string to a dictionary
 splits = {'inner': 3, 'outer': 3}
+MODELS_DIR = os.path.join('..', 'models')
+if not os.path.exists(MODELS_DIR):
+    os.makedirs(MODELS_DIR)
 if args.train:
     logger.info('TRAINING THE WHOLE MODEL')
     logger.debug('Splits: ' + str(splits))
@@ -183,10 +183,25 @@ if args.train:
     # Save the best model
     if best_model is not None:
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        model_name = f'best_model_{args.embedder}_{"fine_tune" if args.fine_tune else "no_fine_tune"}_{args.oversampling}_{args.estimator}_{timestamp}.pkl'
-        joblib.dump(best_model, model_name)
+        model_name = f'Model_{timestamp}.pkl'
+        joblib.dump(best_model, os.path.join(MODELS_DIR, model_name))
         if args.grid_search:
             logger.debug(f'Best parameters across all outer folds: {best_params}')
+            # Save the best parameters to a file
+            with open('best_parameters.txt', 'a') as f:
+                f.write(f'Model: {model_name}\n')
+                f.write(f'Embedder: {args.embedder}\n')
+                f.write(f'Fine-tuning: {"Yes" if args.fine_tune else "No"}\n')
+                if args.fine_tune:
+                    f.write('Epochs and steps for fine-tuning: ' + str(args.epochs) + ' ' + str(args.steps) + '\n')
+                f.write(f'Oversampling: {args.oversampling}\n')
+                f.write(f'Estimator: {args.estimator}\n')
+                f.write(f'Hyperparameters: {best_params}\n')
+                f.write(f'Outer score: {best_outer_score}\n')
+                f.write('Outer splits: ' + str(splits['outer']) + '\n')
+                if args.grid_search:
+                    f.write(f'Inner splits: {splits["inner"]}\n')
+                f.write('\n')
         logger.debug(f'Best score across all outer folds: {best_outer_score}')
         logger.debug(f'Best model saved as: {model_name}')
     else:
@@ -196,7 +211,12 @@ if args.train:
     logger.debug(f'Nested cross-validation scores: {outer_scores}')
     logger.debug(f'Mean score: {np.mean(outer_scores)}')
 
+PREDICTIONS_DIR = os.path.join('..', 'data', 'predictions')
+if not os.path.exists(PREDICTIONS_DIR):
+    os.makedirs(PREDICTIONS_DIR)
 if args.predict:
-    loaded_model = joblib.load(args.predict)
+    loaded_model = joblib.load(os.path.join(MODELS_DIR, args.predict))
     predictions = loaded_model.predict(X)
-    np.savetxt('predictions.txt', predictions, fmt='%s')
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    predictions_file = f'predictions_{args.predict}_{timestamp}.txt'
+    np.savetxt(os.path.join(PREDICTIONS_DIR, predictions_file), predictions, fmt='%s')
