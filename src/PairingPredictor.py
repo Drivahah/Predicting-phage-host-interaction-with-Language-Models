@@ -4,7 +4,8 @@ import torch
 import re
 import time
 import os
-from transformers import T5Tokenizer, T5EncoderModel
+from imblearn.over_sampling import ADASYN, SMOTE
+from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 
 
 class PhageHostEmbedding():
@@ -31,7 +32,7 @@ class PhageHostEmbedding():
             'per_residue': False,  # Beware of high memory consumption
             'per_protein': True
         }
-        self.embed_batch_size = 100
+        self.embed_batch_size = 1
         self.models_config = {
             'embedder': 't5_xl_u50',
             'device': 'cuda:0'
@@ -182,7 +183,14 @@ class PhageHostEmbedding():
                 # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
                 self.embedder.full() if self.device=='cpu' else self.embedder.half()
                 self.embedder.eval() # set model to eval mode, we don't want to train it
-
+        
+        if self.models_config['embedder'] == 'protxlnet':
+            # Load ProtXLNet tokenizer and model if self.tokenizer and self.embedder are not defined
+            if not hasattr(self, 'tokenizer') or not hasattr(self, 'embedder'):
+                self.tokenizer = XLNetTokenizer.from_pretrained('Rostlab/prot_xlnet', do_lower_case=False)
+                self.embedder = XLNetModel.from_pretrained('Rostlab/prot_xlnet').to(self.device)
+                self.embedder.eval() # set model to eval mode, we don't want to train it
+                
     def embed_pairs(self, path=None, debug=False):
         # Check that input has been loaded
         if not self.input:
@@ -225,6 +233,9 @@ class PhageHostEmbedding():
                     with open(self.log, 'a') as f:
                         f.write('Mismatch in the number of proteins and they were not concatenated\n')
                         f.write(f'Re-computing embeddings\n')
+
+                        # Initialize embedded_proteins
+                        self.init_embedded_proteins()
 
                 start = time.time()
 
@@ -273,12 +284,15 @@ class PhageHostEmbedding():
         
         if debug:
             # Write organism in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
                 f.write(f'embed_{organism}_____________________________________________________\n')
 
         seq_dict = self.input[organism]
         batch = list()
-        MAX_INPUT_LEN = 300
+        # MAX_INPUT_LEN = 300
+        MAX_INPUT_LEN = 300000
+        if self.models_config['embedder'] == 'protxlnet':
+            MAX_INPUT_LEN = 1000000
         for i, (id, seq) in enumerate(zip(seq_dict['seqID'], seq_dict['sequence']), 1):
             # Format and append sequence to batch
             seq_len = len(seq)
@@ -292,7 +306,7 @@ class PhageHostEmbedding():
                 # Embed batch before the long sequence
                 if debug:
                     # Write number of proteins in batch in a txt file
-                    with open('PairingPredictor_debug.txt', 'a') as f:
+                    with open(self.debug, 'a') as f:
                         f.write(f'Number of proteins in batch: {len(batch)}\n')
                 if batch:
                     ids, seqs, seq_lens = zip(*batch)
@@ -305,7 +319,7 @@ class PhageHostEmbedding():
 
                     if debug:
                         # Write number of input_ids and attention_mask in a txt file
-                        with open('PairingPredictor_debug.txt', 'a') as f:
+                        with open(self.debug, 'a') as f:
                             f.write(f'Number of input_ids: {len(input_ids)}\n')
                             f.write(f'Number of attention_mask: {len(attention_mask)}\n')
                             f.write(f'Minimum sequence length in input_ids: {min([len(seq) for seq in input_ids])}\n')
@@ -318,19 +332,19 @@ class PhageHostEmbedding():
                             embedding_repr = self.embedder(input_ids, attention_mask)
                             if debug:
                                 # Write len of sequence in a txt file
-                                with open('PairingPredictor_debug.txt', 'a') as f:
+                                with open(self.debug, 'a') as f:
                                     f.write(f'Embedding successful: Len of sequence: {seq_len}\n')
                     except RuntimeError:
                         print("RuntimeError during embedding for {} (L={})".format(id, seq_len))
                         if debug:
                             # Write error in a txt file
-                            with open('PairingPredictor_debug.txt', 'a') as f:
+                            with open(self.debug, 'a') as f:
                                 f.write(f'                      RuntimeError during embedding for {id} (L={seq_len})\n')
                         continue
 
                     if debug:
                         # Write number of embedded proteins in a txt file
-                        with open('PairingPredictor_debug.txt', 'a') as f:
+                        with open(self.debug, 'a') as f:
                             f.write(f'Number of embedding_repr: {len(embedding_repr.last_hidden_state)}\n')
                             f.write(f'Len ids: {len(ids)}\n')
 
@@ -346,13 +360,22 @@ class PhageHostEmbedding():
 
                     if debug:
                         # Write number of embedded proteins in a txt file
-                        with open('PairingPredictor_debug.txt', 'a') as f:
+                        with open(self.debug, 'a') as f:
                             f.write(f'Number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n')
 
                 if seq_len > MAX_INPUT_LEN:
                     # Embed long sequence which was not added to batch
                     chunks = [seq[j:j+MAX_INPUT_LEN] for j in range(0, len(seq), MAX_INPUT_LEN)]
                     chunks = [" ".join(list(re.sub(r"[UZOB]", "X", chunk))) for chunk in chunks]
+                    
+                    if debug:
+                        # Write number of chunks in a txt file
+                        with open(self.debug, 'a') as f:
+                            f.write('seq_len > MAX_INPUT_LEN_____________________________________________________\n')
+                            f.write(f'Number of chunks: {len(chunks)}\n')
+                            f.write(f'Minimum sequence length in chunks: {min([len(seq) for seq in chunks])}\n')
+                            f.write(f'Maximum sequence length in chunks: {max([len(seq) for seq in chunks])}\n')
+                            f.write(f'First chunk: {chunks[0]}\n')
                     token_encoding = self.tokenizer.batch_encode_plus(chunks, add_special_tokens=True, padding="longest")
                     input_ids      = torch.tensor(token_encoding['input_ids']).to(self.device)
                     attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
@@ -367,7 +390,19 @@ class PhageHostEmbedding():
                     # Concatenate chunks
                     embedding_repr = embedding_repr.last_hidden_state
                     embedding_repr_list = [embedding_repr[x] for x in range(embedding_repr.size(0))]
+
+                    if debug:
+                        # Write number of embedded proteins in a txt file
+                        with open(self.debug, 'a') as f:
+                            f.write(f'Number of embedding_repr_list: {len(embedding_repr_list)}\n')
+
                     emb = torch.cat(embedding_repr_list, dim=0)
+
+                    if debug:
+                        # Write len of emb
+                        with open(self.debug, 'a') as f:
+                            f.write(f'Len of emb: {len(emb)}\n')
+
                     if self.actions['per_residue']:
                         self.embedded_proteins[organism]["residue_embs"].append(emb.detach().cpu().numpy().squeeze())
                     if self.actions['per_protein']:
@@ -376,7 +411,7 @@ class PhageHostEmbedding():
 
         if debug:
             # Write number of embedded proteins in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
                 f.write('\n')
                 f.write(f'Total number of embedded proteins: {len(self.embedded_proteins[organism]["protein_embs"])}\n\n')
 
@@ -444,7 +479,7 @@ class PhageHostEmbedding():
         #       and it should help the model distinguish the two proteins
         if debug:
             # Write embedding_type in a txt file
-            with open('PairingPredictor_debug.txt', 'a') as f:
+            with open(self.debug, 'a') as f:
                 f.write(f'concatenate_{embedding_type}_____________________________________________________\n')
         
         separator = np.array([separator])  # Convert separator to a 1-dimensional array
@@ -454,7 +489,7 @@ class PhageHostEmbedding():
             bacteria = self.embedded_proteins['bacteria'][embedding_type][i]
             if debug:
                 # Write phage, separator and bacteria in a txt file
-                with open('PairingPredictor_debug.txt', 'a') as f:
+                with open(self.debug, 'a') as f:
                     f.write(f'phage: {phage}\n')
                     f.write(f'phage type: {type(phage)}\n')
                     f.write(f'separator: {separator}\n')
@@ -469,10 +504,9 @@ class PhageHostEmbedding():
 
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, make_scorer
 from joblib import dump, load
-
 
 class Classifier(PhageHostEmbedding):
     def __init__(self, df_path, debug=None, log=None):
@@ -492,20 +526,33 @@ class Classifier(PhageHostEmbedding):
         self.model_directory = os.path.join('..', 'models')
         if self.log:
             # Save results in same directory as log
-            self.results_path = os.path.join(os.path.dirname(self.log), '3_results.txt')
+            self.results_dir = os.path.dirname(self.log)
+            self.results_path = os.path.join(self.results_dir, '3_results.txt')
 
     def pad_sequences(self, sequences, padding_value=-3000):
         # Get the length of the longest sequence
         max_length = max(len(seq) for seq in sequences)
 
         # Pad all sequences to the same length
-        padded_sequences = np.full((len(sequences), max_length), padding_value)
+        padded_sequences = np.full((len(sequences), max_length), float(padding_value))
         for i, seq in enumerate(sequences):
             padded_sequences[i, :len(seq)] = seq
 
+        if self.debug:
+            # Write padded_sequences in a txt file
+            with open(self.debug, 'a') as f:
+                f.write(f'padded_sequences: {padded_sequences}\n')
+                f.write(f'padded_sequences shape: {padded_sequences.shape}\n')
+                f.write(f'padded_sequences type: {type(padded_sequences)}\n')
+                f.write(f'padded_sequences.dtype: {padded_sequences.dtype}\n')
+                f.write(f'padded_sequences[0]: {padded_sequences[0]}\n')
+                f.write(f'padded_sequences[0] shape: {padded_sequences[0].shape}\n')
+                f.write(f'padded_sequences[0] type: {type(padded_sequences[0])}\n')
+                f.write(f'padded_sequences[0] dtype: {padded_sequences[0].dtype}\n')
+
         return padded_sequences
     
-    def random_split(self):
+    def random_split(self, debug=False):
         if self.log:
             with open(self.log, 'a') as f:
                 f.write(f'random_split' + '_' * 70 + '\n')
@@ -517,7 +564,7 @@ class Classifier(PhageHostEmbedding):
         y = np.array(self.protein_pairs['pair'].tolist())
 
         # If self.debug reduce the dataset to 100 pairs
-        if self.debug:
+        if debug:
             X = X[:200]
             y = y[:200]
 
@@ -541,7 +588,87 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'X_test shape: {self.test["X"].shape}\n')
                 f.write(f'y_test shape: {self.test["y"].shape}\n\n')
 
-    def classify(self, train=False):
+    def ADASYN(self, n_neighbours=5):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'ADASYN' + '_' * 70 + '\n')
+
+        # Initialize ADASYN
+        ada = ADASYN(n_neighbors=n_neighbours, random_state=self.random_state)
+
+        # Resample train set
+        # NB: Oversampling applied only to the training set. 
+        #     The test set should be representative of the original distribution
+
+        # If self.original_train does not exist, use self.train
+        # Otherwise, use self.original_train
+        if not hasattr(self, 'original_train'):
+            X_train_res, y_train_res = ada.fit_resample(self.train['X'], self.train['y'])
+        else:
+            X_train_res, y_train_res = ada.fit_resample(self.original_train['X'], self.original_train['y'])
+
+        # Copy original train set
+        self.original_train = {
+            'X': self.train['X'],
+            'y': self.train['y']
+        }
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train_res,
+            'y': y_train_res
+        }
+
+        # Show counts of labels
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')
+
+    def SMOTE(self, n_neighbours=5):
+        # Check that train and test have been initialized
+        if not hasattr(self, 'train') or not hasattr(self, 'test'):
+            raise ValueError('train and test have not been initialized')
+        
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'SMOTE' + '_' * 70 + '\n')
+
+        # Initialize SMOTE
+        sm = SMOTE(k_neighbors=n_neighbours, random_state=self.random_state)
+
+        # Resample train set
+        # NB: Oversampling applied only to the training set.
+        #     The test set should be representative of the original distribution
+
+        # If self.original_train does not exist, use self.train
+        # Otherwise, use self.original_train
+        if not hasattr(self, 'original_train'):
+            X_train_res, y_train_res = sm.fit_resample(self.train['X'], self.train['y'])
+        else:
+            X_train_res, y_train_res = sm.fit_resample(self.original_train['X'], self.original_train['y'])
+
+        # Copy original train set
+        self.original_train = {
+            'X': self.train['X'],
+            'y': self.train['y']
+        }
+
+        # Store in dictionary
+        self.train = {
+            'X': X_train_res,
+            'y': y_train_res
+        }
+
+        # Show labeling balance
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'Number of labels 1 and 0: {np.bincount(self.train["y"])}\n\n')        
+
+    def classify(self, train=False, load_model='random_forest_classifier.pt'):
         # Check that train and test have been initialized
         if not hasattr(self, 'train') or not hasattr(self, 'test'):
             raise ValueError('train and test have not been initialized')
@@ -560,6 +687,11 @@ class Classifier(PhageHostEmbedding):
             
             start = time.time()
 
+            if self.debug:
+                with open(self.debug, 'a') as f:
+                    f.write(f'Last 10 elements of train["X"]: {self.train["X"][-10:]}\n')
+                    f.write(f'Sum of last 10 elements of train["X"]: {[sum(x) for x in self.train["X"][-10:]]}\n')
+
             # Train classifier
             clf.fit(self.train['X'], self.train['y'])
 
@@ -573,7 +705,7 @@ class Classifier(PhageHostEmbedding):
             # Save model
             if not os.path.exists(self.model_directory):
                 os.makedirs(self.model_directory)
-            model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+            model_path = os.path.join(self.model_directory, load_model)
             dump(clf, model_path)
 
             if self.log:
@@ -583,7 +715,7 @@ class Classifier(PhageHostEmbedding):
         else:
             try:
                 # Load model
-                model_path = os.path.join(self.model_directory, 'random_forest_classifier.pt')
+                model_path = os.path.join(self.model_directory, load_model)
                 clf = load(model_path)
 
                 if self.log:
@@ -630,3 +762,71 @@ class Classifier(PhageHostEmbedding):
                 f.write(f'recall: {recall}\n')
                 f.write(f'f1: {f1}\n')
                 f.write(f'confusion_matrix: {conf_matrix}\n')
+
+    def grid_search(self, debug=False):
+        # Define the parameter grid
+        if debug:
+            param_grid = {
+                'max_features': ['auto', 'sqrt'],
+                'min_samples_leaf': [1, 2],
+                'min_samples_split': [2, 5],
+                'n_estimators': [100, 200]
+            }
+        else:
+            param_grid = {
+                'criterion': ['gini', 'entropy', 'log_loss'],  #gini, entropy, log_loss
+                'max_features': ['auto', 'sqrt'],  #auto, sqrt
+                'min_samples_leaf': [1, 2, 4, 8],
+                'min_samples_split': [2, 5, 10],
+                'n_estimators': [100, 200, 400, 800, 1600]
+            }
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'grid_search' + '_' * 70 + '\n')
+                f.write(f'param_grid: {param_grid}\n')
+
+        # Initialize the grid search model
+        model = RandomForestClassifier(random_state=self.random_state, 
+                                       class_weight='balanced', 
+                                       n_jobs=-1)
+        grid_search = GridSearchCV(estimator=model,
+                                   param_grid=param_grid,
+                                   scoring=make_scorer(f1_score),
+                                   refit=True,
+                                   cv=5,
+                                   n_jobs=-1,
+                                   verbose=2)
+
+        # Fit the grid search to the data
+        grid_search.fit(self.train['X'], self.train['y'])
+
+        # Get the best parameters
+        best_params = grid_search.best_params_
+
+        # Get the tree depths
+        depths = [estimator.tree_.max_depth for estimator in grid_search.best_estimator_.estimators_]
+
+        # Update the model parameters
+        self.random_forest_parms.update(best_params)
+
+        # Save the best model
+        dump(grid_search.best_estimator_, 
+             os.path.join(self.model_directory, 'grid_best.pkl'))
+        
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'best_params: {best_params}\n')
+                f.write(f'depths: {depths}\n')
+                f.write(f'best_estimator: {grid_search.best_estimator_}\n')
+                f.write(f'best model saved in {os.path.join(self.model_directory, "grid_best.pkl")}\n')
+
+        # Save the grid search results to a dataframe
+        results_df = pd.DataFrame(grid_search.cv_results_)
+
+        # Save the grid search results to a csv file
+        results_df.to_csv(os.path.join(self.results_dir, 'grid_search_results.csv'))
+
+        if self.log:
+            with open(self.log, 'a') as f:
+                f.write(f'grid_search_results saved in {os.path.join(self.results_dir, "grid_search_results.csv")}\n\n')
