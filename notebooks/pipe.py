@@ -162,7 +162,7 @@ if args.train:
             logger.debug('PERFORMING GRID SEARCH')
             inner_cv = StratifiedKFold(n_splits=splits['inner'], shuffle=True, random_state=42)
             grid = GridSearchCV(pipe, param_grid, cv=inner_cv)
-            grid.fit(X_train, y_train)
+            grid.fit(X_train, y_train, verbose=3)
             score = grid.score(X_test, y_test)
             logger.debug(f'Best parameters: {grid.best_params_}')
         # Fit the pipeline on the training data without grid search and inner CV
