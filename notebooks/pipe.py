@@ -11,14 +11,16 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
 import logging
 from datetime import datetime
-import sys
-sys.path.append("../src")
-from PipelineFunctions import load_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
 
 # Set workiiing directory to file location
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
+
+# Import custom modules
+import sys
+sys.path.append("../src")
+from PipelineFunctions import load_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
 
 # parse the command line arguments
 parser = argparse.ArgumentParser()
