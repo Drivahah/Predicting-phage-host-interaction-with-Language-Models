@@ -82,10 +82,10 @@ elif args.embedder == 'protxlnet':
 
 # Sequential or parallel embedder for phage and bacteria
 if args.SP == 'sequential':
-    column_transformer = SequentialEmbedder(embedder_phage, embedder_bacteria)
+    pair_embedder = SequentialEmbedder(embedder_phage, embedder_bacteria)
 elif args.SP == 'parallel':
     column_indices = {'sequence_phage': 0, 'sequence_k12': 1}
-    column_transformer = ColumnTransformer(transformers=[
+    pair_embedder = ColumnTransformer(transformers=[
         ('embedder_phage', embedder_phage, [column_indices['sequence_phage']]),
         ('embedder_bacteria', embedder_bacteria, [column_indices['sequence_k12']]),
     ], remainder='drop')  # drop any columns not specified in transformers
@@ -108,16 +108,27 @@ elif args.estimator == 'rf':
 
 # Define oversampling technique
 if args.oversampling == 'smote':
-    pipe = ImbPipeline([('column_transformer', column_transformer),
-                        ('smote', SMOTE()),
-                         ('estimator', estimator)])
+    # pipe = ImbPipeline([('pair_embedder', pair_embedder),
+    #                     ('oversampling', SMOTE()),
+    #                      ('estimator', estimator)])
+    
+    pipe1 = ImbPipeline([('pair_embedder', pair_embedder),
+                         ('oversampling', SMOTE())])
+    pipe2 = Pipeline([('estimator', estimator)])
+                            
 elif args.oversampling == 'adasyn':
-    pipe = ImbPipeline([('column_transformer', column_transformer),
-                        ('adasyn', ADASYN()),
-                         ('estimator', estimator)])
+    # pipe = ImbPipeline([('pair_embedder', pair_embedder),
+    #                     ('oversampling', ADASYN()),
+    #                      ('estimator', estimator)])
+
+    pipe1 = ImbPipeline([('pair_embedder', pair_embedder),
+                         ('oversampling', ADASYN())])
+    pipe2 = Pipeline([('estimator', estimator)])
 else:
-    pipe = Pipeline([('column_transformer', column_transformer),
-                     ('estimator', estimator)])
+    # pipe = Pipeline([('pair_embedder', pair_embedder),
+    #                  ('estimator', estimator)])
+    pipe1 = Pipeline([('pair_embedder', pair_embedder)])
+    pipe2 = Pipeline([('estimator', estimator)])
 
 # Load data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
@@ -126,6 +137,19 @@ X, y = load_data(DATA_PATH, args.quick, args.debug)
 logger.info(f'Data shape: X={X.shape}, y={y.shape}')
 logger.debug(f'X[:5]:\n {X[:5]}')
 logger.debug(f'y[:5]:\n {y[:5]}')
+
+# Embed and resample the data
+X, y = pipe1.named_steps['pair_embedder'].transform(X, y, batch_size=args.batch_size)
+logger.debug(f'Data shape after embedding: X={X.shape}, y={y.shape}')
+logger.debug(f'X[:5]:\n {X[:5]}')
+logger.debug(f'y[:5]:\n {y[:5]}')
+X, y = pipe1.named_steps['oversampling'].fit_resample(X, y)
+logger.debug(f'Data shape after resampling: X={X.shape}, y={y.shape}')
+logger.debug(f'X[:5]:\n {X[:5]}')
+logger.debug(f'y[:5]:\n {y[:5]}')
+
+scoring = ('accuracy', 'precision', 'recall', 'f1', 'roc_auc')
+refit = 'f1'
 
 # (Nested) cross-validation
 param_grid = eval(args.param_grid) # convert the string to a dictionary
@@ -161,14 +185,14 @@ if args.train:
             '''
             logger.debug('PERFORMING GRID SEARCH')
             inner_cv = StratifiedKFold(n_splits=splits['inner'], shuffle=True, random_state=42)
-            grid = GridSearchCV(pipe, param_grid, cv=inner_cv)
-            grid.fit(X_train, y_train, verbose=3)
+            grid = GridSearchCV(pipe2, param_grid, cv=inner_cv, scoring=scoring, refit=refit, verbose=3, n_jobs=-1)
+            grid.fit(X_train, y_train)
             score = grid.score(X_test, y_test)
             logger.debug(f'Best parameters: {grid.best_params_}')
         # Fit the pipeline on the training data without grid search and inner CV
         else:
-            pipe.fit(X_train, y_train)
-            score = pipe.score(X_test, y_test)
+            pipe2.fit(X_train, y_train)
+            score = pipe2.score(X_test, y_test)
 
         outer_scores.append(score)
         logger.debug(f'Score: {score}')

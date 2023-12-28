@@ -44,7 +44,7 @@ def load_data(df_path, quick, debug=False):
     # Return X, y columns as numpy arrays
     return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
 
-
+# TODO remove fine_tune if I am not using it______________________________________________________________________________________________________________________
 # define the custom embedder classes
 class BaseEmbedder(BaseEstimator, TransformerMixin):
     def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3, org='phage', debug=False):
