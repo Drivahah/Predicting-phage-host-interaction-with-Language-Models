@@ -11,6 +11,7 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
 import logging
 from datetime import datetime
+import sys
 sys.path.append("../src")
 from PipeLineFunctions import load_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
 
