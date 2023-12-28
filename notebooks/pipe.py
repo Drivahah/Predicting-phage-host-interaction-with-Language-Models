@@ -148,7 +148,7 @@ logger.debug(f'Data shape after embedding: X={X.shape}, y={y.shape}')
 logger.debug(f'X[:5]:\n {X[:5]}')
 logger.debug(f'y[:5]:\n {y[:5]}')
 X = pipe1.named_steps['oversampling'].fit_resample(X, y)
-logger.debug(f'Data shape after resampling: X={X.shape}, y={y.shape}')
+# logger.debug(f'Data shape after resampling: X={X.shape}, y={y.shape}')
 logger.debug(f'X[:5]:\n {X[:5]}')
 logger.debug(f'y[:5]:\n {y[:5]}')
 
