@@ -202,10 +202,10 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         logger.debug(f'Finished fitting SequentialEmbedder')
         return self
 
-    def transform(self, X):
+    def transform(self, X, batch_size=1):
         logger.debug(f'Transforming SequentialEmbedder')
-        embeddings_phage = self.embedder_phage.transform(X[:, 0])
-        embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1])
+        embeddings_phage = self.embedder_phage.transform(X[:, 0], batch_size=batch_size)
+        embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1], batch_size=batch_size)
         output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
         logger.debug(f'SequentialEmbedder output.shape: {output.shape}')
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}')
