@@ -13,7 +13,7 @@ import logging
 from datetime import datetime
 import sys
 sys.path.append("../src")
-from PipeLineFunctions import load_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
+from PipelineFunctions import load_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
 
 # Set workiiing directory to file location
 abspath = os.path.abspath(__file__)
