@@ -98,14 +98,11 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
             # Convert X to a list if it is not already a list
             if not isinstance(X, list):
                 X = X.tolist()
-            logger.debug(f'X is a {type(X)}, shoulde be a list')
-            logger.debug(f'X shape:\n{len(X)}')
-            logger.debug(f'X[:3]:\n{X[:3]}')
+            logger.debug(f'X is a {type(X)}, shoulde be a list\nX shape:\n{len(X)}\nX[:3]:\n{X[:3]}')
 
             # Flatten X to be a list of strings
             X = [item[0] for item in X]
-            logger.debug(f'X is now a {type(X)}, should be a list of strings')
-            logger.debug(f'X[:3]:\n{X[:3]}')
+            logger.debug(f'X is now a {type(X)}, should be a list of strings\nX[:3]:\n{X[:3]}')
 
             # Define batch size
             if self.num_steps == 0:
@@ -147,15 +144,13 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         logger.debug(f'Transforming {self.org} data with {self.model_name}')
 
         # Convert X to a list if it is not already a flat list
-        if not isinstance(X, list) or any(isinstance(i, list) for i in X):
-            logger.debug(f'X is a {type(X)}, converting to flat list')
-            X = flatten(X)
-            X = [str(item) for item in X]
-        else:
-            logger.debug(f'X is already a flat list')
-        logger.debug(f'X is a {type(X)}, should be a flat list of strings')
-        logger.debug(f'X length: {len(X)}')
-        logger.debug(f'X[:3]:\n{X[:3]}')
+        # if not isinstance(X, list) or any(isinstance(i, list) for i in X):
+        #     logger.debug(f'X is a {type(X)}, converting to flat list')
+        #     X = flatten(X)
+        #     X = [str(item) for item in X]
+        # else:
+        #     logger.debug(f'X is already a flat list')
+        # logger.debug(f'X is a {type(X)}, should be a flat list of strings\nX length: {len(X)}\nX[:3]:\n{X[:3]}')
 
         # Get the batch and encode it
         embeddings_list = []
@@ -183,9 +178,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
 
         # concatenate the list to an array
         embeddings_array = np.concatenate(embeddings_list, axis=0)
-        logger.debug(f'embeddings_array = np.concatenate(embeddings_list, axis=0):\n{embeddings_array}')
+        logger.debug(f'embeddings_array = np.concatenate(embeddings_list, axis=0):\n{embeddings_array}\nFinished transforming {self.org} data with {self.model_name}')
         # logger.debug(f'embeddings_array.shape: {embeddings_array.shape}')
-        logger.debug(f'Finished transforming {self.org} data with {self.model_name}')
 
         return embeddings_array
 
@@ -217,7 +211,6 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1], batch_size=batch_size)
         output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
         # logger.debug(f'SequentialEmbedder output.shape: {output.shape}')
-        logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}')
-        logger.debug(f'Finished transforming SequentialEmbedder')
+        logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output
 

@@ -139,19 +139,14 @@ INPUT_FOLDER = os.path.join('..', 'data', 'interim')
 DATA_PATH = os.path.join(INPUT_FOLDER, '2_model_df.pkl')
 X, y = load_data(DATA_PATH, args.quick, args.debug)
 logger.info(f'LOAD DATA\nData shape: X={X.shape}, y={y.shape}')
-logger.debug(f'X[:5]:\n {X[:5]}')
-logger.debug(f'y[:5]:\n {y[:5]}')
+logger.debug(f'X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 
 # Embed and resample the data
 X = pipe1.named_steps['pair_embedder'].transform(X, batch_size=args.batch_size)
-logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}')
-logger.debug(f'X[:5]:\n {X[:5]}')
-logger.debug(f'y[:5]:\n {y[:5]}')
+logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 X = pipe1.named_steps['oversampling'].fit_resample(X, y)
-logger.debug(f'FINISHED RESAMPLING')
+logger.debug(f'FINISHED RESAMPLING\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 # logger.debug(f'Data shape after resampling: X={X.shape}, y={y.shape}')
-logger.debug(f'X[:5]:\n {X[:5]}')
-logger.debug(f'y[:5]:\n {y[:5]}')
 
 scoring = ('accuracy', 'precision', 'recall', 'f1', 'roc_auc')
 refit = 'f1'
@@ -237,8 +232,7 @@ if args.train:
         logger.warning('No best model found.')
 
     # Log the results of nested cross-validation
-    logger.debug(f'Nested cross-validation scores: {outer_scores}')
-    logger.debug(f'Mean score: {np.mean(outer_scores)}')
+    logger.debug(f'Nested cross-validation scores: {outer_scores}\nMean score: {np.mean(outer_scores)}')
 
 PREDICTIONS_DIR = os.path.join('..', 'data', 'predictions')
 if not os.path.exists(PREDICTIONS_DIR):
