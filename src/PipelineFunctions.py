@@ -14,6 +14,16 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
+def flatten(lst):
+    """Flatten a nested list into a single list"""
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(flatten(item))
+        else:
+            result.append(item)
+    return result
+
 def load_data(df_path, quick, debug=False):
     # Set logger level
     if debug:
@@ -136,16 +146,15 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         self.device = torch.device(self.device)
         logger.debug(f'Transforming {self.org} data with {self.model_name}')
 
-        # Convert X to a list if it is not already a list
-        if not isinstance(X, list):
-            X = X.tolist()
-        logger.debug(f'X is a {type(X)}, shoulde be a list')
-        logger.debug(f'X shape:\n{len(X)}')
-        logger.debug(f'X[:3]:\n{X[:3]}')
-
-        # Flatten X to be a list of strings
-        X = [item[0] for item in X]
-        logger.debug(f'X is now a {type(X)}, should be a list of strings')
+        # Convert X to a list if it is not already a flat list
+        if not isinstance(X, list) or any(isinstance(i, list) for i in X):
+            logger.debug(f'X is a {type(X)}, converting to flat list')
+            X = flatten(X)
+            X = [str(item) for item in X]
+        else:
+            logger.debug(f'X is already a flat list')
+        logger.debug(f'X is a {type(X)}, should be a flat list of strings')
+        logger.debug(f'X length: {len(X)}')
         logger.debug(f'X[:3]:\n{X[:3]}')
 
         # Get the batch and encode it
@@ -153,15 +162,15 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         logger.debug(f'batch size: {batch_size}')
         for i in range(0, len(X), batch_size):
             batch = X[i:i+batch_size]
-            logger.debug(f'batch:\n{batch}')
+            logger.debug(f'batch {i+1}:\n{batch}')
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
             input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
-            logger.debug(f'input_ids:\n{input_ids}')
+            logger.debug(f'input_ids {i+1}:\n{input_ids}')
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
-            logger.debug(f'attention_mask:\n{attention_mask}')
+            logger.debug(f'attention_mask {i+1}:\n{attention_mask}')
             with torch.no_grad():  # No need to calculate gradients
                 embeddings = self.model(input_ids, attention_mask)
-                logger.debug(f'embeddings = model(input_ids, attention_mask):\n{embeddings}')
+                logger.debug(f'embeddings = model(input_ids, attention_mask) {i+1}:\n{embeddings}')
                 for batch_index in range(len(batch)):
                     emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]
                     logger.debug(f'emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]:\n{emb}')
