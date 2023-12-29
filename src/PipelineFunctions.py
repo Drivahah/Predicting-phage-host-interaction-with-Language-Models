@@ -143,7 +143,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         self.device = torch.device(self.device)
         logger.debug(f'Transforming {self.org} data with {self.model_name}')
 
-        # Convert X to a list if it is not already a flat list
+        # # Convert X to a list if it is not already a flat list
         # if not isinstance(X, list) or any(isinstance(i, list) for i in X):
         #     logger.debug(f'X is a {type(X)}, converting to flat list')
         #     X = flatten(X)
@@ -151,6 +151,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         # else:
         #     logger.debug(f'X is already a flat list')
         # logger.debug(f'X is a {type(X)}, should be a flat list of strings\nX length: {len(X)}\nX[:3]:\n{X[:3]}')
+
+        X = X.tolist()
 
         # Get the batch and encode it
         embeddings_list = []
@@ -200,8 +202,8 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         logger.debug(f'Fitting SequentialEmbedder')
-        self.embedder_phage.fit(X[:, 0], y)
-        self.embedder_bacteria.fit(X[:, 1], y)
+        self.embedder_phage.fit(X['sequence_phage'], y)
+        self.embedder_bacteria.fit(X['sequence_k12'], y)
         logger.debug(f'Finished fitting SequentialEmbedder')
         return self
 
@@ -213,4 +215,4 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         # logger.debug(f'SequentialEmbedder output.shape: {output.shape}')
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output
-
+    
