@@ -154,7 +154,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
 
         # Convert X to a list, introduce spaces between letters, and replace special aminoacids with X
         X = X.tolist()
-        sequence_examples = [" ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequence_examples]
+        X = [" ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in X]
         logger.debug(f'Replaced special aminoacids with X\nX[:3]:\n{X[:3]}')
 
         # Get the batch and encode it
