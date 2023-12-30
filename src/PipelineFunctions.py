@@ -6,6 +6,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 import logging
 from transformers import AdamW
+import re
 
 # create a logger object
 logger = logging.getLogger('Pipeline')
