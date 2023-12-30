@@ -142,10 +142,10 @@ logger.info(f'LOAD DATA\nData shape: X={X.shape}, y={y.shape}')
 logger.debug(f'X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 
 # Embed and resample the data
-X_emb = pipe1.named_steps['pair_embedder'].transform(X, batch_size=args.batch_size)
-logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X={X_emb.shape}, y={y.shape}\nX[:5]:\n {X_emb[:5]}\ny[:5]:\n {y[:5]}')
-X_over = pipe1.named_steps['oversampling'].fit_resample(X_emb, y)
-logger.debug(f'FINISHED RESAMPLING\nX[:5]:\n {X_over[:5]}\ny[:5]:\n {y[:5]}')
+# X = pipe1.named_steps['pair_embedder'].transform(X, batch_size=args.batch_size)
+# logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
+# X = pipe1.named_steps['oversampling'].fit_resample(X, y)
+# logger.debug(f'FINISHED RESAMPLING\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 # logger.debug(f'Data shape after resampling: X={X.shape}, y={y.shape}')
 
 scoring = ('accuracy', 'precision', 'recall', 'f1', 'roc_auc')
@@ -168,10 +168,13 @@ if args.train:
     # Outer cross-validation
     outer_scores = []
     outer_cv = StratifiedKFold(n_splits=splits['outer'], shuffle=True, random_state=42)
-    for fold, (train_index, test_index) in enumerate(outer_cv.split(X_over, y)):
+    for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
         logger.debug(f'Outer fold {fold+1}')
-        X_train, X_test = X_over[train_index], X_over[test_index]
+        X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
+
+        # log the head of the training sets
+        logger.debug(f'X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}')
 
         # Grid search and inner CV
         if args.grid_search:
