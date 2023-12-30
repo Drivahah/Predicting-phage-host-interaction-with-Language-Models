@@ -152,19 +152,22 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         #     logger.debug(f'X is already a flat list')
         # logger.debug(f'X is a {type(X)}, should be a flat list of strings\nX length: {len(X)}\nX[:3]:\n{X[:3]}')
 
+        # Convert X to a list, introduce spaces between letters, and replace special aminoacids with X
         X = X.tolist()
+        sequence_examples = [" ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequence_examples]
+        logger.debug(f'Replaced special aminoacids with X\nX[:3]:\n{X[:3]}')
 
         # Get the batch and encode it
         embeddings_list = []
         logger.debug(f'batch size: {batch_size}')
         for i in range(0, len(X), batch_size):
             batch = X[i:i+batch_size]
-            logger.debug(f'batch {i+1}:\n{batch}')
+            logger.debug(f'batch index {i}-{i+batch_size}:\n{batch}')
             token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
             input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
-            logger.debug(f'input_ids {i+1}:\n{input_ids}')
+            logger.debug(f'input_ids index {i}-{i+batch_size}:\n{input_ids}')
             attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
-            logger.debug(f'attention_mask {i+1}:\n{attention_mask}')
+            logger.debug(f'attention_mask index {i}-{i+batch_size}:\n{attention_mask}')
             with torch.no_grad():  # No need to calculate gradients
                 embeddings = self.model(input_ids, attention_mask)
                 logger.debug(f'embeddings = model(input_ids, attention_mask) {i+1}:\n{embeddings}')
