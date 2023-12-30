@@ -141,13 +141,6 @@ X, y = load_data(DATA_PATH, args.quick, args.debug)
 logger.info(f'LOAD DATA\nData shape: X={X.shape}, y={y.shape}')
 logger.debug(f'X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 
-# Embed and resample the data
-# X = pipe1.named_steps['pair_embedder'].transform(X, batch_size=args.batch_size)
-# logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
-# X = pipe1.named_steps['oversampling'].fit_resample(X, y)
-# logger.debug(f'FINISHED RESAMPLING\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
-# logger.debug(f'Data shape after resampling: X={X.shape}, y={y.shape}')
-
 scoring = ('accuracy', 'precision', 'recall', 'f1', 'roc_auc')
 refit = 'f1'
 
@@ -172,9 +165,18 @@ if args.train:
         logger.debug(f'Outer fold {fold+1}')
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
+        logger.debug(f'X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}\nX_test[:5]:\n {X_test[:5]}\ny_test[:5]:\n {y_test[:5]}')
 
-        # log the head of the training sets
-        logger.debug(f'X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}')
+        # Embed and resample the training data
+        X_train = pipe1.named_steps['pair_embedder'].transform(X_train, batch_size=args.batch_size)
+        logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X_train={X_train.shape}, y_train={y_train.shape}\nX_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}')
+        X_train, y_train = pipe1.named_steps['oversampling'].fit_resample(X_train, y_train)
+        logger.debug(f'FINISHED RESAMPLING\nX_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}')
+        logger.debug(f'Data shape after resampling: X_train={X_train.shape}, y_train={y_train.shape}')
+
+        # Embed the test data
+        X_test = pipe1.named_steps['pair_embedder'].transform(X_test, batch_size=args.batch_size)
+        logger.debug(f'FINISHED EMBEDDING:\nData shape after embedding: X_test={X_test.shape}, y_test={y_test.shape}\nX_test[:5]:\n {X_test[:5]}\ny_test[:5]:\n {y_test[:5]}')
 
         # Grid search and inner CV
         if args.grid_search:
