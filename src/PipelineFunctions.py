@@ -7,6 +7,8 @@ from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 import logging
 from transformers import AdamW
 import re
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 # create a logger object
 logger = logging.getLogger('Pipeline')
@@ -226,3 +228,43 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output
     
+def calculate_metrics(estimator, X_train, y_train, X_test, y_test):
+    y_train_pred = estimator.predict(X_train)
+    y_test_pred = estimator.predict(X_test)
+    
+    metrics = {
+        'train_accuracy': accuracy_score(y_train, y_train_pred),
+        'test_accuracy': accuracy_score(y_test, y_test_pred),
+        'train_precision': precision_score(y_train, y_train_pred),
+        'test_precision': precision_score(y_test, y_test_pred),
+        'train_recall': recall_score(y_train, y_train_pred),
+        'test_recall': recall_score(y_test, y_test_pred),
+        'train_f1': f1_score(y_train, y_train_pred),
+        'test_f1': f1_score(y_test, y_test_pred),
+        # Compute ROC AUC only if there are both classes present in y_true for test and train
+        'train_roc_auc': roc_auc_score(y_train, estimator.predict_proba(X_train)[:, 1]) if len(set(y_train)) > 1 else None,
+        'test_roc_auc': roc_auc_score(y_test, estimator.predict_proba(X_test)[:, 1]) if len(set(y_test)) > 1 else None
+    }
+    return metrics
+
+class CustomRandomForestClassifier(RandomForestClassifier):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.metrics = []
+
+    def fit(self, X, y, X_val, y_val):
+        super().fit(X, y)
+        self.metrics.append(calculate_metrics(self, X, y, X_val, y_val))
+        return self
+
+# Define a simple function to plot the metrics
+def plot_metrics(metrics, metric_name, save_path):
+    plt.figure(figsize=(10, 5))
+    plt.plot([m['train_' + metric_name] for m in metrics], label=f'Train {metric_name}')
+    plt.plot([m['test_' + metric_name] for m in metrics], label=f'Test {metric_name}')
+    plt.xlabel('Training Portion')
+    plt.ylabel(metric_name.capitalize())
+    plt.title(f'Train vs Test {metric_name.capitalize()} Over Time')
+    plt.legend()
+    plt.savefig(save_path)
+    plt.close()  # Close the plot to avoid displaying it inline if not desired

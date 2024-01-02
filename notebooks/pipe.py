@@ -21,7 +21,7 @@ os.chdir(dname)
 # Import custom modules
 import sys
 sys.path.append("../src")
-from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
+from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder, CustomRandomForestClassifier, plot_metrics
 
 # parse the command line arguments
 parser = argparse.ArgumentParser()
@@ -113,7 +113,9 @@ elif args.estimator == 'rf':
     estimator = RandomForestClassifier()
     pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
                       ('estimator', estimator)])
-
+elif args.estimator == 'customrf':
+    pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
+                      ('estimator', CustomRandomForestClassifier())])
 
 # Load data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
@@ -187,6 +189,12 @@ if args.train:
 
         outer_scores.append(score)
         logger.debug(f'Score: {score}')
+
+        # For each metric, plot the graph and save to file
+        for metric in ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']:
+            plot_metrics(pipe2.named_steps['estimator'].metrics, 
+                         metric, 
+                         save_path=f'{metric}_over_time.png')
 
         # Update best model
         if score > best_outer_score:
