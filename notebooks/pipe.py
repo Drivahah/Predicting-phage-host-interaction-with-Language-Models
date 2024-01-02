@@ -165,7 +165,7 @@ if args.train:
             Inside grid.fit, all the hyperparameters combinations are tested.
             For each combination, a stratified CV is performed on the training set. 
             Stratified means that the proportion of the classes is preserved in each fold.
-            The combination with the best socre (folds average) is selected.
+            The combination with the best score (folds average) is selected.
             The selected combination of hyperparameters is then used to fit the pipeline on the whole training set.
             This model is evaluated on the test set (aka 1 fold of the outer CV).
             '''
@@ -175,6 +175,11 @@ if args.train:
             grid.fit(X_train, y_train)
             score = grid.score(X_test, y_test)
             logger.debug(f'Best parameters: {grid.best_params_}')
+            logger.debug(f'Scores for the best model: {grid.cv_results_["mean_test_score"]}')
+            logger.debug(f'Score for {refit}: {score}')
+            for metric in scoring:
+                if metric != refit:
+                    logger.debug(f'Score for {metric}: {grid.cv_results_[f"mean_test_{metric}"]}')
         # Fit the pipeline on the training data without grid search and inner CV
         else:
             pipe2.fit(X_train, y_train)
