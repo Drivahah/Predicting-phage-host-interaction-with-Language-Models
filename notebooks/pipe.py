@@ -6,6 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import FunctionTransformer
 import joblib
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
@@ -20,7 +21,7 @@ os.chdir(dname)
 # Import custom modules
 import sys
 sys.path.append("../src")
-from PipelineFunctions import load_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
+from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder
 
 # parse the command line arguments
 parser = argparse.ArgumentParser()
@@ -93,46 +94,26 @@ elif args.SP == 'parallel':
         ('embedder_phage', embedder_phage, [column_indices['sequence_phage']]),
         ('embedder_bacteria', embedder_bacteria, [column_indices['sequence_k12']]),
     ], remainder='drop')  # drop any columns not specified in transformers
-# if args.load_embedder:
-#     # load pre-trained parameters for the embedder
-#     embedder.load_state_dict(torch.load('embedder.pth'))
-#     embedder.eval()
+
+# Define oversampling technique
+if args.oversampling == 'smote':
+    pipe1 = ImbPipeline([('pair_embedder', pair_embedder),
+                         ('oversampling', SMOTE())])
+elif args.oversampling == 'adasyn':
+    pipe1 = ImbPipeline([('pair_embedder', pair_embedder),
+                         ('oversampling', ADASYN())])
+else:
+    pipe1 = Pipeline([('pair_embedder', pair_embedder)])
 
 # Define the final estimator
 if args.estimator == 'logreg':
     estimator = LogisticRegression()
+    pipe2 = Pipeline([('estimator', estimator)])
 elif args.estimator == 'rf':
     estimator = RandomForestClassifier()
-# elif args.estimator == 'transformer':
-#     # use a transformer model as the final estimator
-#     estimator = TransformerClassifier(device=args.device)
-# if args.load_estimator:
-#     # load pre-trained parameters for the final estimator
-#     estimator = joblib.load(args.estimator + '.pkl')
+    pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
+                      ('estimator', estimator)])
 
-# Define oversampling technique
-if args.oversampling == 'smote':
-    # pipe = ImbPipeline([('pair_embedder', pair_embedder),
-    #                     ('oversampling', SMOTE()),
-    #                      ('estimator', estimator)])
-    
-    pipe1 = ImbPipeline([('pair_embedder', pair_embedder),
-                         ('oversampling', SMOTE())])
-    pipe2 = Pipeline([('estimator', estimator)])
-                            
-elif args.oversampling == 'adasyn':
-    # pipe = ImbPipeline([('pair_embedder', pair_embedder),
-    #                     ('oversampling', ADASYN()),
-    #                      ('estimator', estimator)])
-
-    pipe1 = ImbPipeline([('pair_embedder', pair_embedder),
-                         ('oversampling', ADASYN())])
-    pipe2 = Pipeline([('estimator', estimator)])
-else:
-    # pipe = Pipeline([('pair_embedder', pair_embedder),
-    #                  ('estimator', estimator)])
-    pipe1 = Pipeline([('pair_embedder', pair_embedder)])
-    pipe2 = Pipeline([('estimator', estimator)])
 
 # Load data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')

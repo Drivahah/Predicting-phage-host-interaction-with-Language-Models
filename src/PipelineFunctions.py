@@ -55,6 +55,12 @@ def load_data(df_path, quick, debug=False):
     # Return X, y columns as numpy arrays
     return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
 
+def flatten_data(X):
+        output = X.reshape(X.shape[0], -1)  # flatten data so each dimension of the arrays is a feature, not the two columns
+        logger.debug(f'Flattened data X[:3]\n{output[:3]}')
+        return output
+
+
 # TODO remove fine_tune if I am not using it______________________________________________________________________________________________________________________
 # define the custom embedder classes
 class BaseEmbedder(BaseEstimator, TransformerMixin):
@@ -216,7 +222,7 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         embeddings_phage = self.embedder_phage.transform(X[:, 0], batch_size=batch_size)
         embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1], batch_size=batch_size)
         output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
-        # logger.debug(f'SequentialEmbedder output.shape: {output.shape}')
+        logger.debug(f'Output type: {type(output)}')
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output
     
