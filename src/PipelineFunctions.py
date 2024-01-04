@@ -257,7 +257,7 @@ class CustomRandomForestClassifier(RandomForestClassifier):
         super().__init__(n_estimators=n_estimators, criterion=criterion, max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, min_weight_fraction_leaf=min_weight_fraction_leaf, max_features=max_features, max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=min_impurity_decrease, bootstrap=bootstrap, oob_score=oob_score, n_jobs=n_jobs, random_state=random_state, verbose=verbose, warm_start=warm_start, class_weight=class_weight, ccp_alpha=ccp_alpha, max_samples=max_samples)
         self.metrics = []
 
-    def fit(self, X, y, X_val, y_val):
+    def fit(self, X, y):
         super().fit(X, y)
         self.metrics.append(calculate_metrics(self, X, y, X_val, y_val))
         return self
