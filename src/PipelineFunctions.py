@@ -13,6 +13,7 @@ import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from sklearn.base import BaseEstimator, ClassifierMixin
+import matplotlib.pyplot as plt
 
 
 # create a logger object
@@ -259,7 +260,7 @@ class CustomRandomForestClassifier(RandomForestClassifier):
 
     def fit(self, X, y):
         super().fit(X, y)
-        self.metrics.append(calculate_metrics(self, X, y, X_val, y_val))
+        self.metrics.append(calculate_metrics(self, X, y))
         return self
 
 # Define a simple function to plot the metrics
