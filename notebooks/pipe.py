@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import FunctionTransformer
+from sklearn.metrics import make_scorer, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import joblib
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
@@ -21,14 +22,14 @@ os.chdir(dname)
 # Import custom modules
 import sys
 sys.path.append("../src")
-from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder, CustomRandomForestClassifier, plot_metrics
+from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder, CustomRandomForestClassifier, plot_metrics, SklearnCompatibleAttentionClassifier
 
 # parse the command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--embedder', type=str, choices=['prott5', 'protxlnet'], default='prott5', help='Embedder to use')
 parser.add_argument('--fine_tune', action='store_true', help='Whether to fine-tune the embedder')
 parser.add_argument('--oversampling', type=str, choices=['smote', 'adasyn', 'none'], default='none', help='Oversampling technique to use for imbalanced data')
-parser.add_argument('--estimator', type=str, choices=['logreg', 'rf', 'transformer', 'customrf'], default='logreg', help='Final estimator to use')
+parser.add_argument('--estimator', type=str, choices=['logreg', 'rf', 'transformer', 'customrf', 'attention'], default='logreg', help='Final estimator to use')
 parser.add_argument('--train', action='store_true', help='Whether to train the whole model')
 parser.add_argument('--grid_search', action='store_true', help='Whether to perform grid search for the pipeline')
 parser.add_argument('--param_grid', type=str, default='{}', help='Parameter grid for the grid search as a string')
@@ -116,6 +117,11 @@ elif args.estimator == 'rf':
 elif args.estimator == 'customrf':
     pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
                       ('estimator', CustomRandomForestClassifier())])
+elif args.estimator == 'attention':
+    # TODO: if there will be any different length of a single sample, consider the various cases when defining input_dim
+    estimator = SklearnCompatibleAttentionClassifier(input_dim=2048) #TODO: add lr, batch_size and epochs____________________________________________________________
+    pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
+                      ('estimator', estimator)])
 
 # Load data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
@@ -124,7 +130,11 @@ X, y = load_data(DATA_PATH, args.quick, args.debug)
 logger.info(f'LOAD DATA\nData shape: X={X.shape}, y={y.shape}')
 logger.debug(f'X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}')
 
-scoring = ('accuracy', 'precision', 'recall', 'f1', 'roc_auc')
+scoring = {'accuracy': make_scorer(accuracy_score), 
+           'precision': make_scorer(precision_score), 
+           'recall': make_scorer(recall_score), 
+           'f1': make_scorer(f1_score), 
+           'roc_auc': make_scorer(roc_auc_score, needs_proba=True)}  # `needs_proba=True` is for scorers that require probability outputs, like roc_auc
 refit = 'f1'
 
 # (Nested) cross-validation

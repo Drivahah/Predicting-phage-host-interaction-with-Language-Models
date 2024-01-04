@@ -1,5 +1,8 @@
 import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
 import os
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -9,6 +12,8 @@ from transformers import AdamW
 import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.base import BaseEstimator, ClassifierMixin
+
 
 # create a logger object
 logger = logging.getLogger('Pipeline')
@@ -268,3 +273,71 @@ def plot_metrics(metrics, metric_name, save_path):
     plt.legend()
     plt.savefig(save_path)
     plt.close()  # Close the plot to avoid displaying it inline if not desired  
+
+# Define the attention module 
+class AttentionLayer(nn.Module):
+    def __init__(self, input_dim):
+        super(AttentionLayer, self).__init__()
+        self.attention_weights = nn.Parameter(torch.randn(input_dim, 1))
+
+    def forward(self, x):
+        e = torch.tanh(torch.matmul(x, self.attention_weights))
+        a = F.softmax(e, dim=1)
+        output = x * a
+        return torch.sum(output, axis=1)
+
+# Now define the overall Neural Network including the attention layer
+class AttentionNetwork(nn.Module):
+    def __init__(self, input_dim):
+        super(AttentionNetwork, self).__init__()
+        self.attention = AttentionLayer(input_dim)
+        self.fc = nn.Linear(input_dim, 1)
+
+    def forward(self, x):
+        attention_out = self.attention(x)
+        out = torch.sigmoid(self.fc(attention_out))
+        return out
+
+class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, input_dim, lr=0.01, batch_size=3, epochs=20):
+        self.model = AttentionNetwork(input_dim)
+        self.lr = lr
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.criterion = nn.BCELoss()
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model.to(self.device)
+
+    def fit(self, X, y):
+        self.model.train()
+        dataset = TensorDataset(torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(1))
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        for epoch in range(self.epochs):
+            for inputs, targets in dataloader:
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                self.optimizer.zero_grad()
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
+                loss.backward()
+                self.optimizer.step()
+        return self
+
+    def predict(self, X):
+        self.model.eval()
+        inputs = torch.tensor(X, dtype=torch.float32).to(self.device)
+        with torch.no_grad():
+            outputs = self.model(inputs)
+        return torch.round(outputs).cpu().numpy()
+
+    def predict_proba(self, X):
+        self.model.eval()
+        inputs = torch.tensor(X, dtype=torch.float32).to(self.device)
+        with torch.no_grad():
+            outputs = self.model(inputs)
+        return torch.cat((1 - outputs, outputs), axis=1).cpu().numpy()
+
+    def score(self, X, y):
+        predictions = self.predict(X)
+        accuracy = (predictions == y).mean()
+        return accuracy
