@@ -204,10 +204,10 @@ if args.train:
         logger.debug(f'Score: {score}')
 
         # For each metric, plot the graph and save to file
-        for metric in ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']:
-            plot_metrics(pipe2.named_steps['estimator'].metrics, 
-                         metric, 
-                         save_path=f'{metric}_over_time.png')
+        # for metric in ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']:
+        #     plot_metrics(pipe2.named_steps['estimator'].metrics, 
+        #                  metric, 
+        #                  save_path=f'{metric}_over_time.png')
 
         # Update best model
         if score > best_outer_score:
