@@ -13,6 +13,7 @@ import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from sklearn.base import BaseEstimator, ClassifierMixin
+import logging
 import matplotlib.pyplot as plt
 
 
@@ -276,10 +277,14 @@ class AttentionLayer(nn.Module):
         self.attention_weights = nn.Parameter(torch.randn(input_dim, 1))
 
     def forward(self, x):
+        logger.debug(f'AttentionLayer forward x.shape: {x.shape}')
         e = torch.tanh(torch.matmul(x, self.attention_weights))
+        logger.debug(f'AttentionLayer forward e.shape: {e.shape}')
         a = F.softmax(e, dim=1)
+        logger.debug(f'AttentionLayer forward a.shape: {a.shape}')
         output = x * a
-        return torch.sum(output, axis=2)  # Sum over the sequence dimension
+        logger.debug(f'AttentionLayer forward output.shape: {output.shape}')
+        return torch.sum(output, axis=1)  # Sum over the sequence dimension
 
 # Now define the overall Neural Network including the attention layer
 class AttentionNetwork(nn.Module):
