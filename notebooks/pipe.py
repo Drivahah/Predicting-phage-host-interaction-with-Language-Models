@@ -78,6 +78,7 @@ logger.info(f'Pipeline args: \
     SP={args.SP}')
 
 # PIPELINE
+n_jobs = -1  # -1 means use all processors during grid search
 # Define the embedder
 if args.embedder == 'prott5':
     embedder_phage = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device, debug=args.debug)
@@ -124,6 +125,7 @@ elif args.estimator == 'attention':
     estimator = SklearnCompatibleAttentionClassifier(model) #TODO: add lr, batch_size and epochs____________________________________________________________
     pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
                       ('estimator', estimator)])
+    n_jobs = 1  # AttentionNetwork is not picklable, so n_jobs must be 1
 
 # Load data
 INPUT_FOLDER = os.path.join('..', 'data', 'interim')
@@ -185,7 +187,7 @@ if args.train:
             '''
             logger.debug('PERFORMING GRID SEARCH')
             inner_cv = StratifiedKFold(n_splits=splits['inner'], shuffle=True, random_state=42)
-            grid = GridSearchCV(pipe2, param_grid, cv=inner_cv, scoring=scoring, refit=refit, verbose=3, n_jobs=-1)
+            grid = GridSearchCV(pipe2, param_grid, cv=inner_cv, scoring=scoring, refit=refit, verbose=3, n_jobs=n_jobs)
             grid.fit(X_train, y_train)
             score = grid.score(X_test, y_test)
             logger.debug(f'Best parameters: {grid.best_params_}')
