@@ -315,6 +315,10 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         self.model.train()
+        # Convert y to a tensor
+        y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1)
+        # Set the classes_ attribute
+        self.classes_ = torch.unique(y_tensor)
         dataset = TensorDataset(torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(1))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for epoch in range(self.epochs):
