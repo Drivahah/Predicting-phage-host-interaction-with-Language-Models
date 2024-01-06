@@ -284,7 +284,8 @@ class AttentionLayer(nn.Module):
         logger.debug(f'AttentionLayer forward a.shape: {a.shape}')
         output = x * a
         logger.debug(f'AttentionLayer forward output.shape: {output.shape}')
-        return torch.sum(output, axis=1)  # Sum over the sequence dimension
+        # return torch.sum(output, axis=1)  # Sum over the sequence dimension
+        return output
 
 # Now define the overall Neural Network including the attention layer
 class AttentionNetwork(nn.Module):
