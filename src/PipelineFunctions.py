@@ -234,22 +234,16 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output
     
-def calculate_metrics(estimator, X_train, y_train, X_test, y_test):
-    y_train_pred = estimator.predict(X_train)
-    y_test_pred = estimator.predict(X_test)
+def calculate_metrics(estimator, X, y):
+    y_pred = estimator.predict(X)
     
     metrics = {
-        'train_accuracy': accuracy_score(y_train, y_train_pred),
-        'test_accuracy': accuracy_score(y_test, y_test_pred),
-        'train_precision': precision_score(y_train, y_train_pred),
-        'test_precision': precision_score(y_test, y_test_pred),
-        'train_recall': recall_score(y_train, y_train_pred),
-        'test_recall': recall_score(y_test, y_test_pred),
-        'train_f1': f1_score(y_train, y_train_pred),
-        'test_f1': f1_score(y_test, y_test_pred),
-        # Compute ROC AUC only if there are both classes present in y_true for test and train
-        'train_roc_auc': roc_auc_score(y_train, estimator.predict_proba(X_train)[:, 1]) if len(set(y_train)) > 1 else None,
-        'test_roc_auc': roc_auc_score(y_test, estimator.predict_proba(X_test)[:, 1]) if len(set(y_test)) > 1 else None
+        'accuracy': accuracy_score(y, y_pred),
+        'precision': precision_score(y, y_pred),
+        'recall': recall_score(y, y_pred),
+        'f1': f1_score(y, y_pred),
+        # Compute ROC AUC only if there are both classes present in y_true
+        'roc_auc': roc_auc_score(y, estimator.predict_proba(X)[:, 1]) if len(set(y)) > 1 else None
     }
     return metrics
 
