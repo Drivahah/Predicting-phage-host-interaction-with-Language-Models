@@ -191,11 +191,10 @@ if args.train:
             grid.fit(X_train, y_train)
             score = grid.score(X_test, y_test)
             logger.debug(f'Best parameters: {grid.best_params_}')
-            logger.debug(f'Scores {refit} for the best model: {grid.cv_results_["mean_test_score_{refit}"]}')
+            # logger.debug(f'Scores {refit} for the best model: {grid.cv_results_["mean_test_score_{refit}"]}')
             logger.debug(f'Score for {refit}: {score}')
             for metric in scoring:
-                if metric != refit:
-                    logger.debug(f'Score for {metric}: {grid.cv_results_[f"mean_test_{metric}"]}')
+                logger.debug(f'Score for {metric}: {grid.cv_results_[f"mean_test_{metric}"]}')
         # Fit the pipeline on the training data without grid search and inner CV
         else:
             pipe2.fit(X_train, y_train)
