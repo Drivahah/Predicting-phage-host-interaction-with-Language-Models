@@ -279,7 +279,7 @@ class AttentionLayer(nn.Module):
         e = torch.tanh(torch.matmul(x, self.attention_weights))
         a = F.softmax(e, dim=1)
         output = x * a
-        return torch.sum(output, axis=1)
+        return torch.sum(output, axis=2)  # Sum over the sequence dimension
 
 # Now define the overall Neural Network including the attention layer
 class AttentionNetwork(nn.Module):
