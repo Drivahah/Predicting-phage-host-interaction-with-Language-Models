@@ -289,8 +289,11 @@ class AttentionNetwork(nn.Module):
         self.fc = nn.Linear(input_dim, 1)
 
     def forward(self, x):
+        logger.debug(f'AttentionNetwork forward x.shape: {x.shape}')
         attention_out = self.attention(x)
+        logger.debug(f'AttentionNetwork forward attention_out.shape: {attention_out.shape}')
         out = torch.sigmoid(self.fc(attention_out))
+        logger.debug(f'AttentionNetwork forward out.shape: {out.shape}')
         return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
