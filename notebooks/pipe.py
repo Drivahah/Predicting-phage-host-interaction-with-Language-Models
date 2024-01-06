@@ -22,7 +22,7 @@ os.chdir(dname)
 # Import custom modules
 import sys
 sys.path.append("../src")
-from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder, CustomRandomForestClassifier, plot_metrics, SklearnCompatibleAttentionClassifier
+from PipelineFunctions import load_data, flatten_data, ProtT5Embedder, ProtXLNetEmbedder, SequentialEmbedder, CustomRandomForestClassifier, plot_metrics, SklearnCompatibleAttentionClassifier, AttentionNetwork
 
 # parse the command line arguments
 parser = argparse.ArgumentParser()
@@ -119,6 +119,8 @@ elif args.estimator == 'customrf':
                       ('estimator', CustomRandomForestClassifier())])
 elif args.estimator == 'attention':
     # TODO: if there will be any different length of a single sample, consider the various cases when defining input_dim
+    input_dim = 2048
+    model = AttentionNetwork(input_dim)
     estimator = SklearnCompatibleAttentionClassifier(input_dim=2048) #TODO: add lr, batch_size and epochs____________________________________________________________
     pipe2 = Pipeline([('flatten', FunctionTransformer(flatten_data)), 
                       ('estimator', estimator)])
