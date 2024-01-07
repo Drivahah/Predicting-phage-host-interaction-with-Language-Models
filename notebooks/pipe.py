@@ -230,13 +230,10 @@ elif args.classifier == "attention":
     n_jobs = 1  # AttentionNetwork is not picklable, so n_jobs must be 1
 
     # Define the pipeline
-    pipe = ImbPipeline(
-        [
-            ("oversampling", oversampling),
-            ("shape_logger", ShapeLogger("oversampling")),
-            ("classifier", classifier),
-        ]
-    )
+if oversampling is not None:
+    pipe = ImbPipeline([("oversampling", oversampling),
+                        ("shape_logger", ShapeLogger("oversampling")),
+                        ("classifier", classifier),])
 else:
     pipe = Pipeline([("classifier", classifier)])
 # endregion _________________________________________________________________________________________________________________________
