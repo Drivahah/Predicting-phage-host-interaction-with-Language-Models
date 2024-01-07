@@ -352,11 +352,11 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
     
 class ShapeLogger(BaseEstimator, TransformerMixin):
     def __init__(self, previous_step_name):
-        self.previous_step_name = previous_step_name.upper()
+        self.previous_step_name = previous_step_name
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        logger.debug(f"FINISHED {self.previous_step_name}\nData shape: X={X.shape}\n{X[:3]}")
+        logger.debug(f"FINISHED {self.previous_step_name.upper()}\nData shape: X={X.shape}\n{X[:3]}")
         return X
