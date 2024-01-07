@@ -1,4 +1,3 @@
-# region Imports______________________________________________________________________________________________________________________
 import os
 import argparse
 import numpy as np
@@ -146,7 +145,7 @@ logger.info(
     f"Pipeline args: \
     embedder={args.embedder}, \
     fine_tune={args.fine_tune}, \
-    estimator={args.estimator}, \
+    classifier={args.classifier}, \
     train={args.train}, \
     grid_search={args.grid_search}, \
     param_grid={args.param_grid}, \
@@ -330,14 +329,14 @@ if args.train:
 
         # For each metric, plot the graph and save to file
         # for metric in ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']:
-        #     plot_metrics(pipe.named_steps['estimator'].metrics,
+        #     plot_metrics(pipe.named_steps['classifier'].metrics,
         #                  metric,
         #                  save_path=f'{metric}_over_time.png')
 
         # Update best model
         if score > best_outer_score:
             best_outer_score = score
-            best_model = grid.best_estimator_
+            best_model = grid.best_classifier_
             if args.grid_search:
                 best_params = grid.best_params_
 
@@ -356,7 +355,7 @@ if args.train:
                 if args.fine_tune:
                     f.write("Epochs and steps for fine-tuning: " + str(args.epochs) + " " + str(args.steps) + "\n")
                 f.write(f"Oversampling: {args.oversampling}\n")
-                f.write(f"Estimator: {args.estimator}\n")
+                f.write(f"classifier: {args.classifier}\n")
                 f.write(f"Hyperparameters: {best_params}\n")
                 f.write(f"Outer score: {best_outer_score}\n")
                 f.write("Outer splits: " + str(splits["outer"]) + "\n")
