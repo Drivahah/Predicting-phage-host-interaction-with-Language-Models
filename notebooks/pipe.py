@@ -312,11 +312,11 @@ if args.train:
             )
             grid.fit(X_train, y_train)
             score = grid.score(X_test, y_test)
-            logger.debug(f"Best parameters: {grid.best_params_}")
+            logger.info(f"Best parameters: {grid.best_params_}")
             # logger.debug(f'Scores {refit} for the best model: {grid.cv_results_["mean_test_score_{refit}"]}')
-            logger.debug(f"Score for {refit}: {score}")
+            logger.info(f"Score for {refit}: {score}")
             for metric in scoring:
-                logger.debug(f'Score for {metric}: {grid.cv_results_[f"mean_test_{metric}"]}')
+                logger.info(f'Score for {metric}: {grid.cv_results_[f"mean_test_{metric}"]}')
         # Fit the pipeline on the training data without grid search and inner CV
         else:
             pipe.fit(X_train, y_train)
@@ -344,7 +344,7 @@ if args.train:
         model_name = f"Model_{timestamp}.pkl"
         joblib.dump(best_model, os.path.join(MODELS_DIR, model_name))
         if args.grid_search:
-            logger.debug(f"Best parameters across all outer folds: {best_params}")
+            logger.info(f"Best parameters across all outer folds: {best_params}")
             # Save the best parameters to a file
             with open("best_parameters.txt", "a") as f:
                 f.write(f"Model: {model_name}\n")
@@ -360,13 +360,13 @@ if args.train:
                 if args.grid_search:
                     f.write(f'Inner splits: {splits["inner"]}\n')
                 f.write("\n")
-        logger.debug(f"Best score across all outer folds: {best_outer_score}")
-        logger.debug(f"Best model saved as: {model_name}")
+        logger.info(f"Best score across all outer folds: {best_outer_score}")
+        logger.info(f"Best model saved as: {model_name}")
     else:
         logger.warning("No best model found.")
 
     # Log the results of nested cross-validation
-    logger.debug(
+    logger.info(
         f"Nested cross-validation scores: {outer_scores}\nMean score: {np.mean(outer_scores)}"
     )
 
