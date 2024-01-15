@@ -126,7 +126,7 @@ parser.add_argument("--logfile", type=str, default="log.txt", help="Log file nam
 args = parser.parse_args()
 
 # Define log file and add an empty line
-LOG_FILENAME = args.logfile
+LOG_FILENAME = os.path.join("..", "logs", args.logfile)
 with open(LOG_FILENAME, "a") as f:
     f.write("\n")
 # Create a logger object
