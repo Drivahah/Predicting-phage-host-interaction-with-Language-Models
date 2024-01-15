@@ -122,10 +122,11 @@ parser.add_argument(
     default="sequential",
     help="Whether to embed the sequences in parallel or sequentially",
 )
+parser.add_argument("--logfile", type=str, default="log.txt", help="Log file name")
 args = parser.parse_args()
 
 # Define log file and add an empty line
-LOG_FILENAME = "log.txt"
+LOG_FILENAME = args.logfile
 with open(LOG_FILENAME, "a") as f:
     f.write("\n")
 # Create a logger object
