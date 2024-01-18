@@ -274,13 +274,15 @@ logger.debug("EMBED DATA")
 EMB_FILE = 'embeddings_prot.pt' if prot else 'embeddings_res.pt'
 if args.load_embeddings:
     try:
-        logger.info("Loading embeddings from file")
         if os.path.exists(os.path.join(INPUT_FOLDER, EMB_FILE)):
+            logger.info(f"Loading embeddings from file: {EMB_FILE}")
             X = torch.load(os.path.join(INPUT_FOLDER, EMB_FILE))
+            logger.info(f"Embeddings loaded from file: {EMB_FILE}")
         else:
             X = pair_embedder.transform(X, batch_size=args.batch_size)
     except Exception as e:
         logger.error(f"Error while loading embeddings: {e}")
+        sys.exit(1)
 else:
     logger.info("Embedding data")
     X = pair_embedder.transform(X, batch_size=args.batch_size)
