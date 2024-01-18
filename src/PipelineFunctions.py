@@ -299,7 +299,7 @@ class SelfAttentionLayer(nn.Module):
         K = torch.matmul(x, self.W_k)
         V = torch.matmul(x, self.W_v)
 
-        e = torch.matmul(Q, K.transpose(0, 1)) / torch.sqrt(Q.size(-1))
+        e = torch.matmul(Q, K.transpose(0, 1)) / torch.sqrt(torch.tensor(Q.size(-1)).float())
         a = F.softmax(e, dim=1)
 
         output = torch.matmul(a, V)
