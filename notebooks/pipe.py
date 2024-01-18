@@ -245,7 +245,7 @@ elif args.classifier == "crf":
     classifier = CustomRandomForestClassifier()
 elif args.classifier == "attention":
     # TODO: if there will be any different length of a single sample, consider the various cases when defining input_dim
-    input_dim = 2048
+    input_dim = 1024
     model = AttentionNetwork(input_dim, self_attention=args.self_attention)
     classifier = SklearnCompatibleAttentionClassifier(
         model
