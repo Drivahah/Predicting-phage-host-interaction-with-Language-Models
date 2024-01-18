@@ -17,6 +17,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 import joblib
+import torch
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
 import logging
@@ -55,6 +56,16 @@ parser.add_argument(
     choices=["prott5", "protxlnet"],
     default="prott5",
     help="Embedder to use",
+)
+parser.add_argument(
+    "--save_embeddings",
+    action="store_true",
+    help="Whether to save the embeddings to a file",
+)
+parser.add_argument(
+    "--load_embeddings",
+    action="store_true",
+    help="Whether to load the embeddings from a file",
 )
 parser.add_argument(
     "--self_attention",
@@ -252,10 +263,24 @@ logger.debug(f"X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}")
 
 # Embed data
 logger.debug("EMBED DATA")
-X = pair_embedder.transform(X, batch_size=args.batch_size)
+if args.load_embeddings:
+    try:
+        logger.info("Loading embeddings from file")
+        X = torch.load(os.path.join(INPUT_FOLDER, "embeddings.pt"))
+    except Exception as e:
+        logger.error(f"Error while loading embeddings: {e}")
+else:
+    logger.info("Embedding data")
+    X = pair_embedder.transform(X, batch_size=args.batch_size)
 logger.debug(
     f"FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}"
 )
+if args.save_embeddings:
+    try:
+        logger.info("Saving embeddings to file")
+        torch.save(os.path.join(INPUT_FOLDER, "embeddings.pt"), X)
+    except Exception as e:
+        logger.error(f"Error while saving embeddings: {e}")
 # endregion _________________________________________________________________________________________________________________________
 
 # region Grid search and nested cross-validation ___________________________________________________________________________________
