@@ -287,11 +287,32 @@ class AttentionLayer(nn.Module):
         # return torch.sum(output, axis=1)  # Sum over the sequence dimension
         return output
 
+class SelfAttentionLayer(nn.Module):
+    def __init__(self, input_dim):
+        super(SelfAttentionLayer, self).__init__()
+        self.W_q = nn.Parameter(torch.randn(input_dim, input_dim))
+        self.W_k = nn.Parameter(torch.randn(input_dim, input_dim))
+        self.W_v = nn.Parameter(torch.randn(input_dim, input_dim))
+
+    def forward(self, x):
+        Q = torch.matmul(x, self.W_q)
+        K = torch.matmul(x, self.W_k)
+        V = torch.matmul(x, self.W_v)
+
+        e = torch.matmul(Q, K.transpose(0, 1)) / torch.sqrt(Q.size(-1))
+        a = F.softmax(e, dim=1)
+
+        output = torch.matmul(a, V)
+        return output
+
 # Now define the overall Neural Network including the attention layer
 class AttentionNetwork(nn.Module):
-    def __init__(self, input_dim):
+    def __init__(self, input_dim, self_attention=False):
         super(AttentionNetwork, self).__init__()
-        self.attention = AttentionLayer(input_dim)
+        if self_attention:
+            self.attention = SelfAttentionLayer(input_dim)
+        else:
+            self.attention = AttentionLayer(input_dim)
         self.fc = nn.Linear(input_dim, 1)
 
     def forward(self, x):
@@ -308,7 +329,7 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         self.lr = lr
         self.batch_size = batch_size
         self.epochs = epochs
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.BCELoss() # Binary cross entropy loss TODO: check if I should change__________________________
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)

@@ -57,6 +57,11 @@ parser.add_argument(
     help="Embedder to use",
 )
 parser.add_argument(
+    "--self_attention",
+    action="store_true",
+    help="Whether to use self-attention in the AttentionNetwork",
+)
+parser.add_argument(
     "--fine_tune", action="store_true", help="Whether to fine-tune the embedder"
 )
 parser.add_argument(
@@ -222,7 +227,7 @@ elif args.classifier == "crf":
 elif args.classifier == "attention":
     # TODO: if there will be any different length of a single sample, consider the various cases when defining input_dim
     input_dim = 2048
-    model = AttentionNetwork(input_dim)
+    model = AttentionNetwork(input_dim, self_attention=args.self_attention)
     classifier = SklearnCompatibleAttentionClassifier(
         model
     )  # TODO: add lr, batch_size and epochs____________________________________________________________
