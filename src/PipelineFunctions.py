@@ -73,7 +73,7 @@ def flatten_data(X):
 # TODO remove fine_tune if I am not using it______________________________________________________________________________________________________________________
 # define the custom embedder classes
 class BaseEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3, org='phage', debug=False):
+    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3, org='phage', debug=False, prot=True):
         # Set logger level
         if debug:
             logger.setLevel(logging.DEBUG)
@@ -92,6 +92,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         self.num_steps = num_steps
         self.learning_rate = learning_rate
         self.org = org
+        self.prot = prot
         self.load_model_and_tokenizer()
 
         # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
@@ -190,10 +191,13 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                 for batch_index in range(len(batch)):
                     emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]
                     logger.debug(f'emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]:\n{emb}')
-                    emb = emb.mean(dim=0).detach().cpu().numpy().squeeze() # Average the embeddings over the sequence length
-                    logger.debug(f'emb = emb.mean(dim=0).detach().cpu().numpy().squeeze():\n{emb}')
-                    emb = emb.reshape(1, -1) # Wrap the 1D array into a 2D array
-                    logger.debug(f'emb = emb.reshape(1, -1):\n{emb}')
+                    if self.prot:
+                        emb = emb.mean(dim=0).detach().cpu().numpy().squeeze() # Average the embeddings over the sequence length
+                        logger.debug(f'emb = emb.mean(dim=0).detach().cpu().numpy().squeeze():\n{emb}')
+                    else:
+                        emb = emb.detach().cpu().numpy().squeeze()
+                        emb = emb.reshape(1, -1) # Wrap the 1D array into a 2D array
+                        logger.debug(f'emb = emb.reshape(1, -1):\n{emb}')
                     embeddings_list.append(emb)
                     logger.debug(f'embeddings_list.append(emb):\n{embeddings_list}')
 

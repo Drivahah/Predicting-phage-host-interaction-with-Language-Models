@@ -180,12 +180,17 @@ logger.info(
 # region PIPELINE_______________________________________________________________________________________________________________________
 n_jobs = -1  # -1 means use all processors during grid search
 # Define the embedder
+if args.classifier == "attention":
+    prot = False
+else:
+    prot = True
 if args.embedder == "prott5":
     embedder_phage = ProtT5Embedder(
         "Rostlab/prot_t5_xl_half_uniref50-enc",
         fine_tune=args.fine_tune,
         device=args.device,
         debug=args.debug,
+        prot=prot,
     )
     embedder_bacteria = ProtT5Embedder(
         "Rostlab/prot_t5_xl_half_uniref50-enc",
@@ -193,6 +198,7 @@ if args.embedder == "prott5":
         device=args.device,
         org="bacteria",
         debug=args.debug,
+        prot=prot,
     )
 elif args.embedder == "protxlnet":
     embedder_phage = ProtXLNetEmbedder(
@@ -200,6 +206,7 @@ elif args.embedder == "protxlnet":
         fine_tune=args.fine_tune,
         device=args.device,
         debug=args.debug,
+        prot=prot,
     )
     embedder_bacteria = ProtXLNetEmbedder(
         "Rostlab/prot_xlnet",
@@ -207,6 +214,7 @@ elif args.embedder == "protxlnet":
         device=args.device,
         org="bacteria",
         debug=args.debug,
+        prot=prot,
     )
 
 # Sequential or parallel embedder for phage and bacteria
@@ -263,10 +271,14 @@ logger.debug(f"X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}")
 
 # Embed data
 logger.debug("EMBED DATA")
+EMB_FILE = 'embeddings_prot.pt' if prot else 'embeddings_res.pt'
 if args.load_embeddings:
     try:
         logger.info("Loading embeddings from file")
-        X = torch.load(os.path.join(INPUT_FOLDER, "embeddings.pt"))
+        if os.path.exists(os.path.join(INPUT_FOLDER, EMB_FILE)):
+            X = torch.load(os.path.join(INPUT_FOLDER, EMB_FILE))
+        else:
+            X = pair_embedder.transform(X, batch_size=args.batch_size)
     except Exception as e:
         logger.error(f"Error while loading embeddings: {e}")
 else:
@@ -278,7 +290,7 @@ logger.debug(
 if args.save_embeddings:
     try:
         logger.info("Saving embeddings to file")
-        torch.save(os.path.join(INPUT_FOLDER, "embeddings.pt"), X)
+        torch.save(os.path.join(INPUT_FOLDER, EMB_FILE), X)
     except Exception as e:
         logger.error(f"Error while saving embeddings: {e}")
 # endregion _________________________________________________________________________________________________________________________
