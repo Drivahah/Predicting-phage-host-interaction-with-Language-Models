@@ -292,7 +292,7 @@ logger.debug(
 if args.save_embeddings:
     try:
         logger.info("Saving embeddings to file")
-        torch.save(os.path.join(INPUT_FOLDER, EMB_FILE), X)
+        torch.save(X, os.path.join(INPUT_FOLDER, EMB_FILE))
     except Exception as e:
         logger.error(f"Error while saving embeddings: {e}")
 # endregion _________________________________________________________________________________________________________________________
@@ -342,7 +342,7 @@ if args.train:
             Stratified means that the proportion of the classes is preserved in each fold.
             The combination with the best score (folds average) is selected.
             The selected combination of hyperparameters is then used to fit the pipeline on the whole training set.
-            This model is evaluated on the test set (aka 1 fold of the outer CV).
+            This model is evaluated on the test set (i.e. 1 fold of the outer CV).
             """
             logger.debug("PERFORMING GRID SEARCH")
             inner_cv = StratifiedKFold(n_splits=splits["inner"], shuffle=True, random_state=42)
