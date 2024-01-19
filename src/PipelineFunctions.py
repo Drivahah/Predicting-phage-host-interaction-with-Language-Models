@@ -203,7 +203,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                     logger.debug(f'embeddings_list.append(emb):\n{embeddings_list}')
 
         # concatenate the list to an array
-        axis = 0 if self.prot else 2
+        axis = 0 if self.prot else 0
         embeddings_array = np.concatenate(embeddings_list, axis=axis)
         logger.debug(f'embeddings_array = np.concatenate(embeddings_list, axis={axis}):\n{embeddings_array}\nFinished transforming {self.org} data with {self.model_name}')
         # logger.debug(f'embeddings_array.shape: {embeddings_array.shape}')
