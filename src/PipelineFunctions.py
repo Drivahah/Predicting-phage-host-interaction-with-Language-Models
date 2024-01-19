@@ -194,10 +194,11 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
                     if self.prot:
                         emb = emb.mean(dim=0).detach().cpu().numpy().squeeze() # Average the embeddings over the sequence length
                         logger.debug(f'emb = emb.mean(dim=0).detach().cpu().numpy().squeeze():\n{emb}')
-                    else:
-                        emb = emb.detach().cpu().numpy().squeeze()
                         emb = emb.reshape(1, -1) # Wrap the 1D array into a 2D array
                         logger.debug(f'emb = emb.reshape(1, -1):\n{emb}')
+                    else:
+                        emb = emb.detach().cpu().numpy().squeeze()
+                        logger.debug(f'emb = emb.detach().cpu().numpy().squeeze():\n{emb}')
                     embeddings_list.append(emb)
                     logger.debug(f'embeddings_list.append(emb):\n{embeddings_list}')
 
