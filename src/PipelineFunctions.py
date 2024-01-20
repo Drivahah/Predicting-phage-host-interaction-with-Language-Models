@@ -338,7 +338,9 @@ class AttentionNetwork(nn.Module):
         logger.info(f'AttentionNetwork forward x.shape: {x.shape}')
         attention_out = self.attention(x)
         logger.info(f'AttentionNetwork forward attention_out.shape: {attention_out.shape}')
-        out = torch.sigmoid(self.fc(attention_out))
+        context_vector = torch.sum(attention_out, axis=1)  # Sum over the sequence dimension
+        logger.info(f'AttentionNetwork forward context_vector.shape: {context_vector.shape}')
+        out = torch.sigmoid(self.fc(context_vector))
         logger.info(f'AttentionNetwork forward out.shape: {out.shape}')
         return out
 
