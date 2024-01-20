@@ -98,6 +98,18 @@ parser.add_argument(
     help="Whether to perform grid search for the pipeline",
 )
 parser.add_argument(
+    "--inner_splits",
+    type=int,
+    default=3,
+    help="Number of splits for the inner cross-validation",
+)
+parser.add_argument(
+    "--outer_splits",
+    type=int,
+    default=3,
+    help="Number of splits for the outer cross-validation",
+)
+parser.add_argument(
     "--param_grid",
     type=str,
     default="{}",
@@ -309,14 +321,12 @@ refit = "f1"
 
 # (Nested) cross-validation
 param_grid = eval(args.param_grid)  # convert the string to a dictionary
-splits = {"inner": 3, "outer": 3}
 MODELS_DIR = os.path.join("..", "models")
 if not os.path.exists(MODELS_DIR):
     os.makedirs(MODELS_DIR)
 if args.train:
     logger.info("TRAINING THE WHOLE MODEL")
-    logger.debug("Splits: " + str(splits))
-
+    logger.debug(f'Inner splits: {args.inner_splits}, outer splits: {args.outer_splits}')
     best_outer_score = float(
         "-inf"
     )  # Initialize with a very small value for maximization
@@ -325,7 +335,7 @@ if args.train:
 
     # Outer cross-validation
     outer_scores = []
-    outer_cv = StratifiedKFold(n_splits=splits["outer"], shuffle=True, random_state=42)
+    outer_cv = StratifiedKFold(n_splits=args.outer_splits, shuffle=True, random_state=42)
     cv_results_dict = dict()
     best_dict = dict()
     for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
@@ -347,7 +357,7 @@ if args.train:
             This model is evaluated on the test set (i.e. 1 fold of the outer CV).
             """
             logger.debug("PERFORMING GRID SEARCH")
-            inner_cv = StratifiedKFold(n_splits=splits["inner"], shuffle=True, random_state=42)
+            inner_cv = StratifiedKFold(n_splits=args.inner_splits, shuffle=True, random_state=42)
             grid = GridSearchCV(
                 pipe,
                 param_grid,
@@ -416,9 +426,9 @@ if args.train:
                 f.write(f"Hyperparameters: {best_outer_params}\n")
                 f.write(f"Outer score achieved by the model: {best_outer_score}\n")
                 f.write(f"All outer scores: {outer_scores}\n")
-                f.write("Outer splits: " + str(splits["outer"]) + "\n")
+                f.write("Outer splits: " + str(args.outer_splits) + "\n")
                 if args.grid_search:
-                    f.write(f'Inner splits: {splits["inner"]}\n')
+                    f.write(f'Inner splits: {str(args.inner_splits)}\n')
                 f.write("\n")
         logger.info(f"Best score across all outer folds: {best_outer_score}")
         logger.info(f"Best model saved as: {model_name}")
