@@ -309,14 +309,19 @@ class SelfAttentionLayer(nn.Module):
         self.W_v = nn.Parameter(torch.randn(input_dim, input_dim))
 
     def forward(self, x):
+        logger.info(f'SelfAttentionLayer forward x.shape: {x.shape}\nWeights shape: {self.W_q.shape}')
         Q = torch.matmul(x, self.W_q)
         K = torch.matmul(x, self.W_k)
         V = torch.matmul(x, self.W_v)
+        logger.info(f'SelfAttentionLayer forward Q.shape: {Q.shape}')
 
         e = torch.matmul(Q, K.transpose(0, 1)) / torch.sqrt(torch.tensor(Q.size(-1)).float())
+        logger.info(f'SelfAttentionLayer forward e.shape: {e.shape}')
         a = F.softmax(e, dim=1)
+        logger.info(f'SelfAttentionLayer forward a.shape: {a.shape}')
 
         output = torch.matmul(a, V)
+        logger.info(f'SelfAttentionLayer forward output.shape: {output.shape}')
         return output
 
 # Now define the overall Neural Network including the attention layer
@@ -330,11 +335,11 @@ class AttentionNetwork(nn.Module):
         self.fc = nn.Linear(input_dim, 1)
 
     def forward(self, x):
-        logger.debug(f'AttentionNetwork forward x.shape: {x.shape}')
+        logger.info(f'AttentionNetwork forward x.shape: {x.shape}')
         attention_out = self.attention(x)
-        logger.debug(f'AttentionNetwork forward attention_out.shape: {attention_out.shape}')
+        logger.info(f'AttentionNetwork forward attention_out.shape: {attention_out.shape}')
         out = torch.sigmoid(self.fc(attention_out))
-        logger.debug(f'AttentionNetwork forward out.shape: {out.shape}')
+        logger.info(f'AttentionNetwork forward out.shape: {out.shape}')
         return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
