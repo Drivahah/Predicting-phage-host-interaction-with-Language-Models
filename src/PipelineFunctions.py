@@ -315,9 +315,9 @@ class SelfAttentionLayer(nn.Module):
         V = torch.matmul(x, self.W_v)
         logger.info(f'SelfAttentionLayer forward Q.shape: {Q.shape}')
 
-        e = torch.matmul(Q, K.transpose(0, 1)) / torch.sqrt(torch.tensor(Q.size(-1)).float())
+        e = torch.matmul(Q, K.transpose(-1, -2)) / torch.sqrt(torch.tensor(Q.size(-1)).float())
         logger.info(f'SelfAttentionLayer forward e.shape: {e.shape}')
-        a = F.softmax(e, dim=1)
+        a = F.softmax(e, dim=-1)
         logger.info(f'SelfAttentionLayer forward a.shape: {a.shape}')
 
         output = torch.matmul(a, V)
