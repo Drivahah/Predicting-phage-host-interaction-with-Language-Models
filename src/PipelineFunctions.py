@@ -206,6 +206,8 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         axis = 0 if self.prot else 0
         if self.prot:
             embeddings_array = np.concatenate(embeddings_list, axis=axis)
+        else:
+            embeddings_array = np.array(embeddings_list)
         logger.debug(f'embeddings_array = np.concatenate(embeddings_list, axis={axis}):\n{embeddings_array}\nFinished transforming {self.org} data with {self.model_name}')
         # logger.debug(f'embeddings_array.shape: {embeddings_array.shape}')
 
