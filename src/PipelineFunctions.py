@@ -398,5 +398,5 @@ class ShapeLogger(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        logger.debug(f"FINISHED {self.previous_step_name.upper()}\nData shape: X={X.shape}\n{X[:3]}")
+        logger.info(f"FINISHED {self.previous_step_name.upper()}\n{X[:3]}")
         return X
