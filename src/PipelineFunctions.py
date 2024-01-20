@@ -207,7 +207,7 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         if self.prot:
             embeddings_array = np.concatenate(embeddings_list, axis=axis)
         else:
-            embeddings_array = np.array(embeddings_list)
+            embeddings_array = embeddings_list
         logger.debug(f'embeddings_array = embeddings_list:\n{embeddings_array}')
         #     logger.debug(f'embeddings_array = np.stack(embeddings_list):\n{embeddings_array}\nFinished transforming {self.org} data with {self.model_name}')
         # logger.debug(f'embeddings_array.shape: {embeddings_array.shape}')
@@ -244,10 +244,7 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         if self.prot:
             output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
         else:
-            # output = [np.vstack((arr1, arr2)) for arr1, arr2 in zip(embeddings_phage, embeddings_bacteria)]
-            # output = np.array(output)
-            assert embeddings_phage.shape[2] == embeddings_bacteria.shape[2]
-            output = np.vstack((embeddings_phage, embeddings_bacteria))
+            output = [np.vstack((arr1, arr2)) for arr1, arr2 in zip(embeddings_phage, embeddings_bacteria)]
         logger.debug(f'Output type: {type(output)}')
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output

@@ -298,9 +298,12 @@ if args.load_embeddings:
 else:
     logger.info("Embedding data")
     X = pair_embedder.transform(X, batch_size=args.batch_size)
-logger.debug(
-    f"FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}"
-)
+    if prot:
+        logger.debug(
+            f"FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}"
+        )
+    else:
+        logger.debug('FINISHED EMBEDDING')
 if args.save_embeddings:
     try:
         logger.info("Saving embeddings to file")
