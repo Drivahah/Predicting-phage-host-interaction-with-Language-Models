@@ -318,9 +318,10 @@ scoring = {
     "precision": make_scorer(precision_score),
     "recall": make_scorer(recall_score),
     "f1": make_scorer(f1_score),
-    "roc_auc": make_scorer(roc_auc_score, needs_proba=True),
+    "roc_auc": make_scorer(roc_auc_score, response_method="predict_proba"),
 }  # `needs_proba=True` is for scorers that require probability outputs, like roc_auc
 refit = "f1"
+outer_predictions = dict()
 
 # (Nested) cross-validation
 param_grid = eval(args.param_grid)  # convert the string to a dictionary
@@ -391,6 +392,9 @@ if args.train:
             
             logger.info(f"Best parameters for fold {fold}: {grid.best_params_}")
             logger.info(f"Best {refit} score for fold {fold}: {grid.best_score_}")
+
+            outer_predictions[f"fold_{fold}"]['y_test'] = y_test
+            outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
             
             # The best parameters are used to fit a new model - best_estimator_ - on the training set of the outer fold
             # This model is evaluated on the test set of the outer fold, returning grid.score
@@ -428,6 +432,7 @@ if args.train:
             logger.info(f"Saving grid search results in {model_directory}")
             joblib.dump(cv_results_dict, os.path.join(model_directory, "cv_results.pkl"))
             joblib.dump(best_dict, os.path.join(model_directory, "best_dict.pkl"))
+            joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
         
             logger.info(f"Best parameters across all outer folds: {best_outer_params}")
             # Save the best parameters to a file
