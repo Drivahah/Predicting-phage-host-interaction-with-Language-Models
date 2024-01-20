@@ -206,9 +206,10 @@ class BaseEmbedder(BaseEstimator, TransformerMixin):
         axis = 0 if self.prot else 0
         if self.prot:
             embeddings_array = np.concatenate(embeddings_list, axis=axis)
-        else:
-            embeddings_array = np.stack(embeddings_list)
-            logger.debug(f'embeddings_array = np.stack(embeddings_list):\n{embeddings_array}\nFinished transforming {self.org} data with {self.model_name}')
+        # else:
+        #     combined_list = [np.vstack((arr1, arr2)) for arr1, arr2 in zip(list1, list2)]
+        #     ]
+        #     logger.debug(f'embeddings_array = np.stack(embeddings_list):\n{embeddings_array}\nFinished transforming {self.org} data with {self.model_name}')
         # logger.debug(f'embeddings_array.shape: {embeddings_array.shape}')
 
         return embeddings_array
@@ -224,9 +225,10 @@ class ProtXLNetEmbedder(BaseEmbedder):
         self.model = XLNetModel.from_pretrained(self.model_name).to(self.device)
 
 class SequentialEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, embedder_phage, embedder_bacteria):
+    def __init__(self, embedder_phage, embedder_bacteria, prot=True):
         self.embedder_phage = embedder_phage
         self.embedder_bacteria = embedder_bacteria
+        self.prot = prot
 
     def fit(self, X, y=None):
         logger.debug(f'Fitting SequentialEmbedder')
@@ -239,7 +241,10 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
         logger.debug(f'Transforming SequentialEmbedder')
         embeddings_phage = self.embedder_phage.transform(X[:, 0], batch_size=batch_size)
         embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1], batch_size=batch_size)
-        output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
+        if self.prot:
+            output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
+        else:
+            output = [np.vstack((arr1, arr2)) for arr1, arr2 in zip(embeddings_phage, embeddings_bacteria)]
         logger.debug(f'Output type: {type(output)}')
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output

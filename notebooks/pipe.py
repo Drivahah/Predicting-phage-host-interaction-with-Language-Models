@@ -231,7 +231,7 @@ elif args.embedder == "protxlnet":
 
 # Sequential or parallel embedder for phage and bacteria
 if args.SP == "sequential":
-    pair_embedder = SequentialEmbedder(embedder_phage, embedder_bacteria)
+    pair_embedder = SequentialEmbedder(embedder_phage, embedder_bacteria, prot=prot)
 elif args.SP == "parallel":
     column_indices = {"sequence_phage": 0, "sequence_k12": 1}
     pair_embedder = ColumnTransformer(
