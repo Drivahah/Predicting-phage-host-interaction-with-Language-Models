@@ -245,6 +245,7 @@ class SequentialEmbedder(BaseEstimator, TransformerMixin):
             output = np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
         else:
             output = [np.vstack((arr1, arr2)) for arr1, arr2 in zip(embeddings_phage, embeddings_bacteria)]
+            output = np.array(output)
         logger.debug(f'Output type: {type(output)}')
         logger.debug(f'SequentialEmbedder output[:3]:\n{output[:3]}\nFinished transforming SequentialEmbedder')
         return output
