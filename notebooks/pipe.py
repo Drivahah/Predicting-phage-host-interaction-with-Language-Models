@@ -345,10 +345,9 @@ if args.train:
         logger.debug(f"Outer fold {fold+1}")
         if prot:
             X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
         else:
-            X_train, X_test = X[train_index.astype(int)], X[test_index.astype(int)]
-            y_train, y_test = y[train_index.astype(int)], y[test_index.astype(int)]
+            X_train, X_test = [X[i] for i in train_index], [X[i] for i in test_index]
+        y_train, y_test = y[train_index], y[test_index]
         logger.debug(
             f"X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}\nX_test[:5]:\n {X_test[:5]}\ny_test[:5]:\n {y_test[:5]}"
         )
