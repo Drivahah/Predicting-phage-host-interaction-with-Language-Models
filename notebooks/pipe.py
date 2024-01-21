@@ -393,6 +393,7 @@ if args.train:
             logger.info(f"Best parameters for fold {fold}: {grid.best_params_}")
             logger.info(f"Best {refit} score for fold {fold}: {grid.best_score_}")
 
+            outer_predictions[f"fold_{fold}"] = dict()
             outer_predictions[f"fold_{fold}"]['y_test'] = y_test
             outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
             
