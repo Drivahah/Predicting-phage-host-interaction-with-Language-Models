@@ -117,3 +117,6 @@ PH/
 #best model in notebooks and log
 /notebooks/*.txt
 /notebooks/*.pkl
+
+#references
+/references/*
