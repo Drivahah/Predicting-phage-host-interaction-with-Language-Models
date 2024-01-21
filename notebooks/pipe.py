@@ -318,7 +318,7 @@ scoring = {
     "precision": make_scorer(precision_score),
     "recall": make_scorer(recall_score),
     "f1": make_scorer(f1_score),
-    "roc_auc": make_scorer(roc_auc_score, response_method="predict_proba"),
+    "roc_auc": make_scorer(roc_auc_score, needs_proba=True),
 }  # `needs_proba=True` is for scorers that require probability outputs, like roc_auc
 refit = "f1"
 outer_predictions = dict()
