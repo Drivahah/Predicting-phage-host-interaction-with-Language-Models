@@ -291,13 +291,9 @@ class AttentionLayer(nn.Module):
         self.attention_weights = nn.Parameter(torch.randn(input_dim, 1))
 
     def forward(self, x):
-        logger.debug(f'AttentionLayer forward x.shape: {x.shape}')
         e = torch.tanh(torch.matmul(x, self.attention_weights))
-        logger.debug(f'AttentionLayer forward e.shape: {e.shape}')
         a = F.softmax(e, dim=1)
-        logger.debug(f'AttentionLayer forward a.shape: {a.shape}')
         output = x * a
-        logger.debug(f'AttentionLayer forward output.shape: {output.shape}')
         # return torch.sum(output, axis=1)  # Sum over the sequence dimension
         return output
 
@@ -309,19 +305,14 @@ class SelfAttentionLayer(nn.Module):
         self.W_v = nn.Parameter(torch.randn(input_dim, input_dim))
 
     def forward(self, x):
-        logger.info(f'SelfAttentionLayer forward x.shape: {x.shape}\nWeights shape: {self.W_q.shape}')
         Q = torch.matmul(x, self.W_q)
         K = torch.matmul(x, self.W_k)
         V = torch.matmul(x, self.W_v)
-        logger.info(f'SelfAttentionLayer forward Q.shape: {Q.shape}')
 
         e = torch.matmul(Q, K.transpose(-1, -2)) / torch.sqrt(torch.tensor(Q.size(-1)).float())
-        logger.info(f'SelfAttentionLayer forward e.shape: {e.shape}')
         a = F.softmax(e, dim=-1)
-        logger.info(f'SelfAttentionLayer forward a.shape: {a.shape}')
 
         output = torch.matmul(a, V)
-        logger.info(f'SelfAttentionLayer forward output.shape: {output.shape}')
         return output
 
 # Now define the overall Neural Network including the attention layer
@@ -335,13 +326,9 @@ class AttentionNetwork(nn.Module):
         self.fc = nn.Linear(input_dim, 1)
 
     def forward(self, x):
-        logger.info(f'AttentionNetwork forward x.shape: {x.shape}')
         attention_out = self.attention(x)
-        logger.info(f'AttentionNetwork forward attention_out.shape: {attention_out.shape}')
         context_vector = torch.sum(attention_out, axis=1)  # Sum over the sequence dimension
-        logger.info(f'AttentionNetwork forward context_vector.shape: {context_vector.shape}')
         out = torch.sigmoid(self.fc(context_vector))
-        logger.info(f'AttentionNetwork forward out.shape: {out.shape}')
         return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
