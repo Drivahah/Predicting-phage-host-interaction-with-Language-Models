@@ -332,8 +332,9 @@ class AttentionNetwork(nn.Module):
         return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, model, lr=0.01, batch_size=3, epochs=20):
+    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20):
         self.model = model
+        self.model_dir = model_dir
         self.lr = lr
         self.batch_size = batch_size
         self.epochs = epochs
@@ -341,6 +342,7 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
+        self.loss_file = os.path.join(self.model_dir, 'loss.npy')
 
     def fit(self, X, y):
         self.model.train()
@@ -350,6 +352,7 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         self.classes_ = torch.unique(y_tensor)
         dataset = TensorDataset(torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(1))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        loss_values = []
         for epoch in range(self.epochs):
             for inputs, targets in dataloader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
@@ -357,7 +360,12 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, targets)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)  # Clip gradients to avoid exploding gradients
                 self.optimizer.step()
+                loss_values.append(loss.item())
+
+        np.save(self.loss_file, np.array(loss_values))
+        
         return self
 
     def predict(self, X):

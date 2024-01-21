@@ -191,6 +191,10 @@ logger.info(
 
 # region PIPELINE_______________________________________________________________________________________________________________________
 n_jobs = -1  # -1 means use all processors during grid search
+timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+MODELS_DIR = os.path.join("..", "models")
+model_directory = os.path.join(MODELS_DIR, timestamp)
+os.makedirs(model_directory)
 # Define the embedder
 if args.classifier == "attention":
     prot = False
@@ -260,7 +264,7 @@ elif args.classifier == "attention":
     input_dim = 1024
     model = AttentionNetwork(input_dim, self_attention=args.self_attention)
     classifier = SklearnCompatibleAttentionClassifier(
-        model
+        model, model_directory
     )  # TODO: add lr, batch_size and epochs____________________________________________________________
     n_jobs = 1  # AttentionNetwork is not picklable, so n_jobs must be 1
 
@@ -325,7 +329,6 @@ outer_predictions = dict()
 
 # (Nested) cross-validation
 param_grid = eval(args.param_grid)  # convert the string to a dictionary
-MODELS_DIR = os.path.join("..", "models")
 if not os.path.exists(MODELS_DIR):
     os.makedirs(MODELS_DIR)
 if args.train:
@@ -423,9 +426,7 @@ if args.train:
 
     # Save the best model
     if best_model is not None:
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        model_directory = os.path.join(MODELS_DIR, timestamp)
-        os.makedirs(model_directory)
+        
         model_name = f"Model_{timestamp}.pkl"
         joblib.dump(best_model, os.path.join(model_directory, model_name))
         # Save the results of the grid search as json files
