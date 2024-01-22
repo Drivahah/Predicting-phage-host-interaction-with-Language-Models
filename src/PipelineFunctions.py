@@ -14,7 +14,6 @@ import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import BaseSearchCV
 import matplotlib.pyplot as plt
 
 
