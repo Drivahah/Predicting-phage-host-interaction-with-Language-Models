@@ -14,7 +14,9 @@ import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
+from torch import optim
 import matplotlib.pyplot as plt
+
 
 
 # create a logger object
@@ -349,7 +351,7 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         self.model.to(self.device)
         self.loss_file = os.path.join(self.model_dir, 'loss.npy')
         self.scaler = StandardScaler()
-        self.scorings = scorings
+        self.scoring = scoring
         self.refit = refit
 
     def fit(self, X, y):
@@ -401,8 +403,8 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def _run_search(self, evaluate_candidates):
         results = super()._run_search(evaluate_candidates)
-        if self.scorings is not None:
-            for scorer_name in self.scorings:
+        if self.scoring is not None:
+            for scorer_name in self.scoring:
                 scorer = self.scorers_[scorer_name]
                 results['mean_test_' + scorer_name] = scorer._score_func(self, self.cv_results_)
         return results
