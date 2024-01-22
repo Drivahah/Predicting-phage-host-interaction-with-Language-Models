@@ -195,6 +195,16 @@ timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 MODELS_DIR = os.path.join("..", "models")
 model_directory = os.path.join(MODELS_DIR, timestamp)
 os.makedirs(model_directory)
+
+scoring = {
+    "accuracy": make_scorer(accuracy_score),
+    "precision": make_scorer(precision_score),
+    "recall": make_scorer(recall_score),
+    "f1": make_scorer(f1_score),
+    "roc_auc": make_scorer(roc_auc_score, needs_proba=True),
+}  # `needs_proba=True` is for scorers that require probability outputs, like roc_auc
+refit = "f1"
+
 # Define the embedder
 if args.classifier == "attention":
     prot = False
@@ -264,7 +274,7 @@ elif args.classifier == "attention":
     input_dim = 1024
     model = AttentionNetwork(input_dim, self_attention=args.self_attention)
     classifier = SklearnCompatibleAttentionClassifier(
-        model, model_directory
+        model, model_directory, scoring=scoring, refit=refit
     )  # TODO: add lr, batch_size and epochs____________________________________________________________
     n_jobs = 1  # AttentionNetwork is not picklable, so n_jobs must be 1
 
@@ -317,14 +327,7 @@ if args.save_embeddings:
 # endregion _________________________________________________________________________________________________________________________
 
 # region Grid search and nested cross-validation ___________________________________________________________________________________
-scoring = {
-    "accuracy": make_scorer(accuracy_score),
-    "precision": make_scorer(precision_score),
-    "recall": make_scorer(recall_score),
-    "f1": make_scorer(f1_score),
-    "roc_auc": make_scorer(roc_auc_score, needs_proba=True),
-}  # `needs_proba=True` is for scorers that require probability outputs, like roc_auc
-refit = "f1"
+
 outer_predictions = dict()
 
 # (Nested) cross-validation

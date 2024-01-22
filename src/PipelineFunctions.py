@@ -337,20 +337,21 @@ class AttentionNetwork(nn.Module):
         out = torch.sigmoid(self.fc(context_vector))
         return out
 
-class SklearnCompatibleAttentionClassifier(BaseSearchCV, ClassifierMixin):
-    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scorings=None):
+class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scorings=None, refit=None):
         self.model = model
         self.model_dir = model_dir
         self.lr = lr
         self.batch_size = batch_size
         self.epochs = epochs
         self.criterion = nn.BCELoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         self.loss_file = os.path.join(self.model_dir, 'loss.npy')
         self.scaler = StandardScaler()
         self.scorings = scorings
+        self.refit = refit
 
     def fit(self, X, y):
         self.model.train()
@@ -372,7 +373,6 @@ class SklearnCompatibleAttentionClassifier(BaseSearchCV, ClassifierMixin):
                 loss_values.append(loss.item())
 
         np.save(self.loss_file, np.array(loss_values))
-        
         return self
 
     def predict(self, X):
@@ -391,8 +391,14 @@ class SklearnCompatibleAttentionClassifier(BaseSearchCV, ClassifierMixin):
 
     def score(self, X, y):
         predictions = self.predict(X)
-        accuracy = (predictions == y).mean()
-        return accuracy
+
+        # Use the refit metric for scoring
+        if self.refit is not None:
+            scorer = self.scorers_[self.refit]
+            score = scorer._score_func(self, X, y)
+        else:
+            # Default to accuracy if no refit metric is specified
+            score = accuracy_score(y, predictions)
 
     def _run_search(self, evaluate_candidates):
         results = super()._run_search(evaluate_candidates)
@@ -401,6 +407,9 @@ class SklearnCompatibleAttentionClassifier(BaseSearchCV, ClassifierMixin):
                 scorer = self.scorers_[scorer_name]
                 results['mean_test_' + scorer_name] = scorer._score_func(self, self.cv_results_)
         return results
+
+    def _more_tags(self):
+        return {'multioutput': True}
     
 class ShapeLogger(BaseEstimator, TransformerMixin):
     def __init__(self, previous_step_name):
