@@ -1,19 +1,20 @@
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 import os
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
 import logging
 from transformers import AdamW
 import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn.base import BaseEstimator, ClassifierMixin
-import logging
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import BaseSearchCV
 import matplotlib.pyplot as plt
 
 
@@ -300,9 +301,14 @@ class AttentionLayer(nn.Module):
 class SelfAttentionLayer(nn.Module):
     def __init__(self, input_dim):
         super(SelfAttentionLayer, self).__init__()
-        self.W_q = nn.Parameter(torch.randn(input_dim, input_dim))
-        self.W_k = nn.Parameter(torch.randn(input_dim, input_dim))
-        self.W_v = nn.Parameter(torch.randn(input_dim, input_dim))
+        self.W_q = nn.Parameter(torch.empty(input_dim, input_dim))
+        self.W_k = nn.Parameter(torch.empty(input_dim, input_dim))
+        self.W_v = nn.Parameter(torch.empty(input_dim, input_dim))
+
+        # Apply Xavier initialization
+        init.xavier_uniform_(self.W_q)
+        init.xavier_uniform_(self.W_k)
+        init.xavier_uniform_(self.W_v)
 
     def forward(self, x):
         Q = torch.matmul(x, self.W_q)
@@ -331,26 +337,27 @@ class AttentionNetwork(nn.Module):
         out = torch.sigmoid(self.fc(context_vector))
         return out
 
-class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20):
+class SklearnCompatibleAttentionClassifier(BaseSearchCV, ClassifierMixin):
+    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scorings=None):
         self.model = model
         self.model_dir = model_dir
         self.lr = lr
         self.batch_size = batch_size
         self.epochs = epochs
-        self.criterion = nn.BCELoss() # Binary cross entropy loss TODO: check if I should change__________________________
+        self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         self.loss_file = os.path.join(self.model_dir, 'loss.npy')
+        self.scaler = StandardScaler()
+        self.scorings = scorings
 
     def fit(self, X, y):
         self.model.train()
-        # Convert y to a tensor
+        X_normalized = self.scaler.fit_transform(X)
         y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1)
-        # Set the classes_ attribute
         self.classes_ = torch.unique(y_tensor)
-        dataset = TensorDataset(torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(1))
+        dataset = TensorDataset(torch.tensor(X_normalized, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(1))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         loss_values = []
         for epoch in range(self.epochs):
@@ -360,7 +367,7 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, targets)
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)  # Clip gradients to avoid exploding gradients
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 self.optimizer.step()
                 loss_values.append(loss.item())
 
@@ -386,6 +393,14 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         predictions = self.predict(X)
         accuracy = (predictions == y).mean()
         return accuracy
+
+    def _run_search(self, evaluate_candidates):
+        results = super()._run_search(evaluate_candidates)
+        if self.scorings is not None:
+            for scorer_name in self.scorings:
+                scorer = self.scorers_[scorer_name]
+                results['mean_test_' + scorer_name] = scorer._score_func(self, self.cv_results_)
+        return results
     
 class ShapeLogger(BaseEstimator, TransformerMixin):
     def __init__(self, previous_step_name):
