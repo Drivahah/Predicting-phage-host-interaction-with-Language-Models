@@ -337,7 +337,7 @@ class AttentionNetwork(nn.Module):
         return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scorings=None, refit=None):
+    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scoring=None, refit=None):
         self.model = model
         self.model_dir = model_dir
         self.lr = lr
