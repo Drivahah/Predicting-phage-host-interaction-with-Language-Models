@@ -434,8 +434,8 @@ if args.train:
         # Update best model
         if outer_score > best_outer_score:
             best_outer_score = outer_score
-            best_model = grid.best_estimator_
             if args.grid_search:
+                best_model = grid.best_estimator_
                 best_outer_params = grid.best_params_
 
     best_dict["best_outer_score"] = best_outer_score
