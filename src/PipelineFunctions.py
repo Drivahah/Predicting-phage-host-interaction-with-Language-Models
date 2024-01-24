@@ -345,22 +345,26 @@ class CNNAttentionNetwork(nn.Module):
             self.attention = SelfAttentionLayer(input_dim)
         else:
             self.attention = AttentionLayer(input_dim)
-        
-        self.conv1d = nn.Conv1d(1, num_filters, kernel_size=kernel_size)
-        self.pool1d = nn.MaxPool1d(kernel_size=2)
+
+        # 2D Convolution parameters
+        self.num_filters = num_filters
+        self.kernel_size = kernel_size
+        self.conv2d = nn.Conv2d(1, num_filters, kernel_size=(kernel_size, input_dim))
+        self.pool2d = nn.MaxPool2d(kernel_size=(2, 1))
+
+        # Fully connected layer
         self.fc = nn.Linear(num_filters, 1)
 
     def forward(self, x):
         attention_out = self.attention(x)
-        context_vector = torch.sum(attention_out, dim=1)  # Sum over the sequence dimension
 
-        # Reshape for 1D CNN
-        context_vector = context_vector.unsqueeze(1)
+        # Reshape for 2D Convolution
+        attention_out = attention_out.unsqueeze(1)
 
-        # Apply 1D CNN
-        x = self.conv1d(context_vector)
+        # Apply 2D Convolution
+        x = self.conv2d(attention_out)
         x = F.relu(x)
-        x = self.pool1d(x)
+        x = self.pool2d(x)
 
         # Flatten before the fully connected layer
         x = x.view(x.size(0), -1)
