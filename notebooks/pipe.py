@@ -275,6 +275,8 @@ else:
 # Define the classifier
 if args.classifier == "rf":
     classifier = RandomForestClassifier()
+    if not args.grid_search:
+        classifier.set_params(n_estimators=100, max_features="log2", min_samples_leaf=3, min_samples_split=2)
 elif args.classifier == "crf":
     classifier = CustomRandomForestClassifier()
 elif args.classifier == "attention":
@@ -421,7 +423,6 @@ if args.train:
             
         # Fit the pipeline on the training data without grid search and inner CV
         else:
-            pipe.set_params(**param_grid)  # Set the desired parameters of the classifier
             pipe.fit(X_train, y_train)
             outer_score = pipe.score(X_test, y_test)
             outer_predictions[f"fold_{fold}"] = dict()
