@@ -421,8 +421,12 @@ if args.train:
             
         # Fit the pipeline on the training data without grid search and inner CV
         else:
+            pipe.set_params(**param_grid)  # Set the desired parameters of the classifier
             pipe.fit(X_train, y_train)
             outer_score = pipe.score(X_test, y_test)
+            outer_predictions[f"fold_{fold}"] = dict()
+            outer_predictions[f"fold_{fold}"]['y_test'] = y_test
+            outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
 
         outer_scores.append(outer_score)
 
@@ -464,8 +468,25 @@ if args.train:
                 if args.grid_search:
                     f.write(f'Inner splits: {str(args.inner_splits)}\n')
                 f.write("\n")
+        else:
+            logger.info(f"Best model saved as: {model_name}")
+            joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
+            joblib.dump(outer_scores, os.path.join(model_directory, "best_dict.pkl"))
+
+            with open("best_parameters.txt", "a") as f:
+                f.write(f"Model: {model_name}\n")
+                f.write(f"Embedder: {args.embedder}\n")
+                f.write(f"Oversampling: {args.oversampling}\n")
+                f.write(f"classifier: {args.classifier}\n")
+                f.write(f"Outer score achieved by the model: {best_outer_score}\n")
+                f.write(f"All outer scores: {outer_scores}\n")
+                f.write("Outer splits: " + str(args.outer_splits) + "\n")
+                f.write("\n")
+
         logger.info(f"Best score across all outer folds: {best_outer_score}")
         logger.info(f"Best model saved as: {model_name}")
+
+
     else:
         logger.warning("No best model found.")
 
