@@ -217,6 +217,7 @@ if args.classifier == "attention":
 else:
     prot = True
 if args.embedder == "prott5":
+    emb_name = 'embeddings_T5'
     embedder_phage = ProtT5Embedder(
         "Rostlab/prot_t5_xl_half_uniref50-enc",
         fine_tune=args.fine_tune,
@@ -233,6 +234,7 @@ if args.embedder == "prott5":
         prot=prot,
     )
 elif args.embedder == "protxlnet":
+    emb_name = 'embeddings_XL'
     embedder_phage = ProtXLNetEmbedder(
         "Rostlab/prot_xlnet",
         fine_tune=args.fine_tune,
@@ -306,7 +308,7 @@ logger.debug(f"X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}")
 
 # Embed data
 logger.debug("EMBED DATA")
-EMB_FILE = 'embeddings_prot.pt' if prot else 'embeddings_res.pt'
+EMB_FILE = f'{emb_name}_prot.pt' if prot else f'{emb_name}_res.pt'
 if args.load_embeddings:
     try:
         if os.path.exists(os.path.join(INPUT_FOLDER, EMB_FILE)):
