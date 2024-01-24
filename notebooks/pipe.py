@@ -427,7 +427,7 @@ if args.train:
             outer_score = pipe.score(X_test, y_test)
             outer_predictions[f"fold_{fold}"] = dict()
             outer_predictions[f"fold_{fold}"]['y_test'] = y_test
-            outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
+            outer_predictions[f"fold_{fold}"]['y_proba'] = pipe.predict_proba(X_test)
 
         outer_scores.append(outer_score)
 
