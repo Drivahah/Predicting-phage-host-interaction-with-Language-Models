@@ -439,9 +439,10 @@ if args.train:
                 best_outer_params = grid.best_params_
 
     best_dict["best_outer_score"] = best_outer_score
-    best_dict["best_outer_params"] = best_outer_params
     best_dict["outer_scores"] = outer_scores
     best_dict["mean_outer_score"] = np.mean(outer_scores)
+    if args.grid_search:
+        best_dict["best_outer_params"] = best_outer_params
 
     # Save the best model
     if best_model is not None:
