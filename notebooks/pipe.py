@@ -42,6 +42,7 @@ from PipelineFunctions import (
     plot_metrics,
     SklearnCompatibleAttentionClassifier,
     AttentionNetwork,
+    CNNAttentionNetwork,
     ShapeLogger
 )
 
