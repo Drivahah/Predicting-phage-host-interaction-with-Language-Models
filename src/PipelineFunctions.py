@@ -346,7 +346,7 @@ class CNNAttentionNetwork(nn.Module):
         else:
             self.attention = AttentionLayer(input_dim)
         
-        self.conv1d = nn.Conv1d(input_dim, num_filters, kernel_size=kernel_size)
+        self.conv1d = nn.Conv1d(1, num_filters, kernel_size=kernel_size)
         self.pool1d = nn.MaxPool1d(kernel_size=2)
         self.fc = nn.Linear(num_filters, 1)
 
