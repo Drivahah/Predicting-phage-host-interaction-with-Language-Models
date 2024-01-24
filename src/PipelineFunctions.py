@@ -337,9 +337,40 @@ class AttentionNetwork(nn.Module):
         context_vector = torch.sum(attention_out, axis=1)  # Sum over the sequence dimension
         out = torch.sigmoid(self.fc(context_vector))
         return out
+    
+class CNNAttentionNetwork(nn.Module):
+    def __init__(self, input_dim, self_attention=False, num_filters=64, kernel_size=3):
+        super(CNNAttentionNetwork, self).__init__()
+        if self_attention:
+            self.attention = SelfAttentionLayer(input_dim)
+        else:
+            self.attention = AttentionLayer(input_dim)
+        
+        self.conv1d = nn.Conv1d(input_dim, num_filters, kernel_size=kernel_size)
+        self.pool1d = nn.MaxPool1d(kernel_size=2)
+        self.fc = nn.Linear(num_filters, 1)
+
+    def forward(self, x):
+        attention_out = self.attention(x)
+        context_vector = torch.sum(attention_out, dim=1)  # Sum over the sequence dimension
+
+        # Reshape for 1D CNN
+        context_vector = context_vector.unsqueeze(1)
+
+        # Apply 1D CNN
+        x = self.conv1d(context_vector)
+        x = F.relu(x)
+        x = self.pool1d(x)
+
+        # Flatten before the fully connected layer
+        x = x.view(x.size(0), -1)
+
+        # Fully connected layer
+        out = torch.sigmoid(self.fc(x))
+        return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scoring=None, refit=None):
+    def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scoring=None, refit=None, num_filters=64, kernel_size=3):
         self.model = model
         self.model_dir = model_dir
         self.lr = lr
@@ -353,6 +384,8 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         self.scaler = StandardScaler()
         self.scoring = scoring
         self.refit = refit
+        self.num_filters = num_filters
+        self.kernel_size = kernel_size
 
     def fit(self, X, y):
         self.model.train()

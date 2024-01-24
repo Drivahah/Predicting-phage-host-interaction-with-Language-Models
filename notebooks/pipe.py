@@ -90,6 +90,11 @@ parser.add_argument(
     help="Final classifier to use",
 )
 parser.add_argument(
+    "--cnn",
+    action="store_true",
+    help="Whether to use a CNN in the AttentionNetwork",
+)
+parser.add_argument(
     "--train", action="store_true", help="Whether to train the whole model"
 )
 parser.add_argument(
@@ -272,7 +277,10 @@ elif args.classifier == "crf":
 elif args.classifier == "attention":
     # TODO: if there will be any different length of a single sample, consider the various cases when defining input_dim
     input_dim = 1024
-    model = AttentionNetwork(input_dim, self_attention=args.self_attention)
+    if args.cnn:
+        model = CNNAttentionNetwork(input_dim, self_attention=args.self_attention)
+    else:
+        model = AttentionNetwork(input_dim, self_attention=args.self_attention)
     classifier = SklearnCompatibleAttentionClassifier(
         model, model_directory, scoring=scoring, refit=refit
     )  # TODO: add lr, batch_size and epochs____________________________________________________________
