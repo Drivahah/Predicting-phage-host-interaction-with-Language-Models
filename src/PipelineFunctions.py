@@ -426,14 +426,20 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         self.model.eval()
-        inputs = torch.tensor(X, dtype=torch.float32).to('cuda')
+        X_reshaped = X.reshape(-1, X.shape[-1])
+        X_normalized = self.scaler.fit_transform(X_reshaped)
+        X_normalized = X_normalized.reshape(X.shape) 
+        inputs = torch.tensor(X_normalized, dtype=torch.float32).to('cuda')
         with torch.no_grad():
             outputs = self.model(inputs)
         return torch.round(outputs).cpu().numpy()
 
     def predict_proba(self, X):
         self.model.eval()
-        inputs = torch.tensor(X, dtype=torch.float32).to('cuda')
+        X_reshaped = X.reshape(-1, X.shape[-1])
+        X_normalized = self.scaler.fit_transform(X_reshaped)
+        X_normalized = X_normalized.reshape(X.shape) 
+        inputs = torch.tensor(X_normalized, dtype=torch.float32).to('cuda')
         with torch.no_grad():
             outputs = self.model(inputs)
         return torch.cat((1 - outputs, outputs), axis=1).cpu().numpy()
