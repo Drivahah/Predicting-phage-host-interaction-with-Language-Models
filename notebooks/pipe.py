@@ -367,10 +367,9 @@ if args.train:
             X_train, X_test = X[train_index], X[test_index]
         else:
             X_train, X_test = [X[i] for i in train_index], [X[i] for i in test_index]
-            max_size_train = max(arr.shape[0] for arr in X_train)
-            X_train = [np.pad(arr, ((0, max_size_train - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_train]  # Pad arrays to same size, so that they can be converted to a tensor
-            max_size_test = max(arr.shape[0] for arr in X_test)
-            X_test = [np.pad(arr, ((0, max_size_test - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_test]
+            max_size = max(max(arr.shape[0] for arr in X_train), max(arr.shape[0] for arr in X_test))
+            X_train = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_train]  # Pad arrays to same size, so that they can be converted to a tensor
+            X_test = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_test]
             X_train = np.array(X_train)
             X_test = np.array(X_test)
 
