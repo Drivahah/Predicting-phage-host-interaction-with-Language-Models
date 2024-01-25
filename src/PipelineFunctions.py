@@ -290,7 +290,7 @@ def plot_metrics(metrics, metric_name, save_path):
 class AttentionLayer(nn.Module):
     def __init__(self, input_dim):
         super(AttentionLayer, self).__init__()
-        self.attention_weights = nn.Parameter(torch.randn(input_dim, 1))
+        self.attention_weights = nn.Parameter(torch.randn(input_dim, 1).to('cuda'))
 
     def forward(self, x):
         e = torch.tanh(torch.matmul(x, self.attention_weights))
@@ -302,9 +302,9 @@ class AttentionLayer(nn.Module):
 class SelfAttentionLayer(nn.Module):
     def __init__(self, input_dim):
         super(SelfAttentionLayer, self).__init__()
-        self.W_q = nn.Parameter(torch.empty(input_dim, input_dim))
-        self.W_k = nn.Parameter(torch.empty(input_dim, input_dim))
-        self.W_v = nn.Parameter(torch.empty(input_dim, input_dim))
+        self.W_q = nn.Parameter(torch.empty(input_dim, input_dim).to('cuda'))
+        self.W_k = nn.Parameter(torch.empty(input_dim, input_dim).to('cuda'))
+        self.W_v = nn.Parameter(torch.empty(input_dim, input_dim).to('cuda'))
 
         # Apply Xavier initialization
         init.xavier_uniform_(self.W_q)
@@ -330,7 +330,7 @@ class AttentionNetwork(nn.Module):
             self.attention = SelfAttentionLayer(input_dim)
         else:
             self.attention = AttentionLayer(input_dim)
-        self.fc = nn.Linear(input_dim, 1)
+        self.fc = nn.Linear(input_dim, 1).to('cuda')
 
     def forward(self, x):
         attention_out = self.attention(x)
@@ -349,12 +349,12 @@ class CNNAttentionNetwork(nn.Module):
         # 2D Convolution parameters
         self.num_filters = num_filters
         self.kernel_size = kernel_size
-        self.conv2d = nn.Conv2d(1, num_filters, kernel_size=(kernel_size, input_dim), stride=stride)
+        self.conv2d = nn.Conv2d(1, num_filters, kernel_size=(kernel_size, input_dim), stride=stride).to('cuda')
         self.pool2d = nn.MaxPool2d(kernel_size=(2, 1))
 
         # Fully connected layer
         
-        self.fc = nn.Linear(num_filters, 1)
+        self.fc = nn.Linear(num_filters, 1).to('cuda')
 
     def forward(self, x):
         attention_out = self.attention(x)
@@ -376,13 +376,13 @@ class CNNAttentionNetwork(nn.Module):
         x = x.view(x.size(0), -1)
 
         # Fully connected layer
-        self.fc = nn.Linear(x.size(1), 1)
+        self.fc = nn.Linear(x.size(1), 1).to('cuda')
         out = torch.sigmoid(self.fc(x))
         return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scoring=None, refit=None, num_filters=64, kernel_size=3):
-        self.model = model
+        self.model = model.to('cuda')
         self.model_dir = model_dir
         self.lr = lr
         self.batch_size = batch_size
@@ -403,9 +403,9 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         X_reshaped = X.reshape(-1, X.shape[-1])
         X_normalized = self.scaler.fit_transform(X_reshaped)
         X_normalized = X_normalized.reshape(X.shape)        
-        y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1)
+        y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1).to('cuda')
         self.classes_ = torch.unique(y_tensor)
-        dataset = TensorDataset(torch.tensor(X_normalized, dtype=torch.float32), torch.tensor(y, dtype=torch.float32).unsqueeze(1))
+        dataset = TensorDataset(torch.tensor(X_normalized, dtype=torch.float32).to('cuda'), torch.tensor(y, dtype=torch.float32).unsqueeze(1).to('cuda'))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         loss_values = []
         for epoch in range(self.epochs):
@@ -424,14 +424,14 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         self.model.eval()
-        inputs = torch.tensor(X, dtype=torch.float32).to(self.device)
+        inputs = torch.tensor(X, dtype=torch.float32).to('cuda')
         with torch.no_grad():
             outputs = self.model(inputs)
         return torch.round(outputs).cpu().numpy()
 
     def predict_proba(self, X):
         self.model.eval()
-        inputs = torch.tensor(X, dtype=torch.float32).to(self.device)
+        inputs = torch.tensor(X, dtype=torch.float32).to('cuda')
         with torch.no_grad():
             outputs = self.model(inputs)
         return torch.cat((1 - outputs, outputs), axis=1).cpu().numpy()
