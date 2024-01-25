@@ -402,10 +402,15 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         self.model.train()
+        logger.info(f'fit: X.shape: {X.shape}')
         X_reshaped = X.reshape(-1, X.shape[-1])
+        logger.info(f'fit: X_reshaped.shape: {X_reshaped.shape}')
         X_normalized = self.scaler.fit_transform(X_reshaped)
+        logger.info(f'fit: X_normalized.shape: {X_normalized.shape}')
         X_normalized = X_normalized.reshape(X.shape)        
+        logger.info(f'fit: X_normalized.shape: {X_normalized.shape}')
         y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1).to('cuda')
+        logger.info(f'fit: y_tensor.shape: {y_tensor.shape}')
         self.classes_ = torch.unique(y_tensor)
         dataset = TensorDataset(torch.tensor(X_normalized, dtype=torch.float32).to('cuda'), torch.tensor(y, dtype=torch.float32).unsqueeze(1).to('cuda'))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
@@ -426,9 +431,13 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         self.model.eval()
+        logger.info(f'predict: X.shape: {X.shape}')
         X_reshaped = X.reshape(-1, X.shape[-1])
+        logger.info(f'predict: X_reshaped.shape: {X_reshaped.shape}')
         X_normalized = self.scaler.fit_transform(X_reshaped)
+        logger.info(f'predict: X_normalized.shape: {X_normalized.shape}')
         X_normalized = X_normalized.reshape(X.shape) 
+        logger.info(f'predict: X_normalized.shape: {X_normalized.shape}')
         inputs = torch.tensor(X_normalized, dtype=torch.float32).to('cuda')
         with torch.no_grad():
             outputs = self.model(inputs)
@@ -437,20 +446,30 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         self.model.eval()
         X_reshaped = X.reshape(-1, X.shape[-1])
+        logger.info(f'predict_proba: X_reshaped.shape: {X_reshaped.shape}')
         X_normalized = self.scaler.fit_transform(X_reshaped)
+        logger.info(f'predict_proba: X_normalized.shape: {X_normalized.shape}')
         X_normalized = X_normalized.reshape(X.shape) 
+        logger.info(f'predict_proba: X_normalized.shape: {X_normalized.shape}')
         inputs = torch.tensor(X_normalized, dtype=torch.float32).to('cuda')
         with torch.no_grad():
             outputs = self.model(inputs)
         return torch.cat((1 - outputs, outputs), axis=1).cpu().numpy()
 
     def score(self, X, y):
-        predictions = self.predict(X)
+        logger.info(f'score: X.shape: {X.shape}')
+        X_reshaped = X.reshape(-1, X.shape[-1])
+        logger.info(f'score: X_reshaped.shape: {X_reshaped.shape}')
+        X_normalized = self.scaler.fit_transform(X_reshaped)
+        logger.info(f'score: X_normalized.shape: {X_normalized.shape}')
+        X_normalized = X_normalized.reshape(X.shape) 
+        logger.info(f'score: X_normalized.shape: {X_normalized.shape}')
+        predictions = self.predict(X_normalized)
 
         # Use the refit metric for scoring
         if self.refit is not None:
             scorer = self.scorers_[self.refit]
-            score = scorer._score_func(self, X, y)
+            score = scorer._score_func(self, X_normalized, y)
         else:
             # Default to accuracy if no refit metric is specified
             score = accuracy_score(y, predictions)
