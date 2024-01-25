@@ -469,7 +469,7 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         # Use the refit metric for scoring
         if self.refit is not None:
             scorer = self.scorers_[self.refit]
-            score = scorer._score_func(self, X_normalized, y)
+            score = scorer._score_func(self, X_normalized.cpu().numpy(), y)
         else:
             # Default to accuracy if no refit metric is specified
             score = accuracy_score(y, predictions)
