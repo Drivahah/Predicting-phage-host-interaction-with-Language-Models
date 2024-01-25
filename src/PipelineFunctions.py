@@ -339,7 +339,7 @@ class AttentionNetwork(nn.Module):
         return out
     
 class CNNAttentionNetwork(nn.Module):
-    def __init__(self, input_dim, self_attention=False, num_filters=64, kernel_size=3):
+    def __init__(self, input_dim, self_attention=False, num_filters=3, kernel_size=3, stride=1):
         super(CNNAttentionNetwork, self).__init__()
         if self_attention:
             self.attention = SelfAttentionLayer(input_dim)
@@ -349,27 +349,34 @@ class CNNAttentionNetwork(nn.Module):
         # 2D Convolution parameters
         self.num_filters = num_filters
         self.kernel_size = kernel_size
-        self.conv2d = nn.Conv2d(1, num_filters, kernel_size=(kernel_size, input_dim))
+        self.conv2d = nn.Conv2d(1, num_filters, kernel_size=(kernel_size, input_dim), stride=stride)
         self.pool2d = nn.MaxPool2d(kernel_size=(2, 1))
 
         # Fully connected layer
+        
         self.fc = nn.Linear(num_filters, 1)
 
     def forward(self, x):
         attention_out = self.attention(x)
+        logger.info(f'attention_out.shape: {attention_out.shape}')
 
         # Reshape for 2D Convolution
-        attention_out = attention_out.unsqueeze(1)
+        attention_out = attention_out.unsqueeze(1)  
+        logger.info(f'attention_out_unsqueeze.shape: {attention_out.shape}')
 
         # Apply 2D Convolution
         x = self.conv2d(attention_out)
+        logger.info(f'x_conv2d.shape: {x.shape}')  
         x = F.relu(x)
+        logger.info(f'x_relu.shape: {x.shape}')
         x = self.pool2d(x)
+        logger.info(f'x_pool2d.shape: {x.shape}')
 
         # Flatten before the fully connected layer
         x = x.view(x.size(0), -1)
 
         # Fully connected layer
+        self.fc = nnLinear(x.size(1), 1)
         out = torch.sigmoid(self.fc(x))
         return out
 
