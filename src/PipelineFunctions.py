@@ -354,7 +354,7 @@ class CNNAttentionNetwork(nn.Module):
 
         # Fully connected layer
         
-        self.fc = nn.Linear(num_filters, 1).to('cuda')
+        self.fc = nn.Linear(4161, 1).to('cuda')
 
     def forward(self, x):
         attention_out = self.attention(x)
