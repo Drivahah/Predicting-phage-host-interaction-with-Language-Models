@@ -375,8 +375,10 @@ class CNNAttentionNetwork(nn.Module):
         # Flatten before the fully connected layer
         x = x.view(x.size(0), -1)
 
+        # check the shape of the tensor going into the fully connected layer
+        logger.info(f'x_fc.shape: {x.shape}')
+
         # Fully connected layer
-        self.fc = nn.Linear(x.size(1), 1).to('cuda')
         out = torch.sigmoid(self.fc(x))
         return out
 
