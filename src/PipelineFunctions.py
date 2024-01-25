@@ -376,7 +376,7 @@ class CNNAttentionNetwork(nn.Module):
         x = x.view(x.size(0), -1)
 
         # Fully connected layer
-        self.fc = nnLinear(x.size(1), 1)
+        self.fc = nn.Linear(x.size(1), 1)
         out = torch.sigmoid(self.fc(x))
         return out
 
