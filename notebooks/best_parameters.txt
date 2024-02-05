@@ -568,23 +568,3 @@ All outer scores: [0.5714285714285714, 0.6071428571428571, 0.5116279069767442, 0
 Outer splits: 5
 Inner splits: 2
 
-Model: Model_20240125132111.pkl
-Embedder: prott5
-Oversampling: adasyn
-classifier: rf
-Hyperparameters: {'classifier__criterion': 'gini', 'classifier__max_features': 'log2', 'classifier__min_samples_leaf': 3, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 100}
-Outer score achieved by the model: 0.7346938775510203
-All outer scores: [0.576923076923077, 0.576271186440678, 0.4444444444444445, 0.6046511627906977, 0.7346938775510203]
-Outer splits: 5
-Inner splits: 2
-
-Model: Model_20240205183127.pkl
-Embedder: prott5
-Oversampling: none
-classifier: attention
-Hyperparameters: {'classifier__batch_size': 8, 'classifier__epochs': 1, 'classifier__lr': 0.001}
-Outer score achieved by the model: 0.0
-All outer scores: [0.0, 0.0, 0.0]
-Outer splits: 3
-Inner splits: 3
-
