@@ -417,7 +417,12 @@ if args.train:
             
             # The best parameters are used to fit a new model - best_estimator_ - on the training set of the outer fold
             # This model is evaluated on the test set of the outer fold, returning grid.score
-            outer_score = grid.score(X_test, y_test) 
+            if args.cnn:
+                outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
+                y_pred = grid.predict(X_test)
+                outer_score = f1_score(y_test, y_pred)
+            else:
+                outer_score = grid.score(X_test, y_test) 
             logger.info(f"Outer {refit} score for fold {fold} using the model trained on outer training with the best parameters: {outer_score}")
             
         # Fit the pipeline on the training data without grid search and inner CV
