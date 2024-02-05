@@ -458,21 +458,37 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
 
     def score(self, X, y):
         logger.info(f'score: X.shape: {X.shape}')
+
+        # Move the model to CPU if it's on GPU
+        self.model.to('cpu')
+
+        # Reshape the input
         X_reshaped = X.reshape(-1, X.shape[-1])
         logger.info(f'score: X_reshaped.shape: {X_reshaped.shape}')
+
+        # Normalize on CPU
         X_normalized = self.scaler.fit_transform(X_reshaped)
         logger.info(f'score: X_normalized.shape: {X_normalized.shape}')
-        X_normalized = X_normalized.reshape(X.shape) 
+
+        # Reshape back to the original shape
+        X_normalized = X_normalized.reshape(X.shape)
         logger.info(f'score: X_normalized.shape: {X_normalized.shape}')
+
+        # Predictions on CPU
         predictions = self.predict(X_normalized)
 
         # Use the refit metric for scoring
         if self.refit is not None:
             scorer = self.scorers_[self.refit]
-            score = scorer._score_func(self, X_normalized.cpu().numpy(), y)
+            
+            # Move the tensors to CPU before calculating the score
+            X_normalized_cpu = X_normalized.cpu().numpy()
+            y_cpu = y.cpu().numpy()
+
+            score = scorer._score_func(self, X_normalized_cpu, y_cpu)
         else:
             # Default to accuracy if no refit metric is specified
-            score = accuracy_score(y, predictions)
+            score = accuracy_score(y.cpu().numpy(), predictions.cpu().numpy())
 
         return score
 
