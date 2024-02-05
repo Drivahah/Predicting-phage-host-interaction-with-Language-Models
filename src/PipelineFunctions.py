@@ -409,10 +409,10 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         logger.info(f'fit: X_normalized.shape: {X_normalized.shape}')
         X_normalized = X_normalized.reshape(X.shape)        
         logger.info(f'fit: X_normalized.shape: {X_normalized.shape}')
-        y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1).to('cuda')
+        y_tensor = torch.tensor(y, dtype=torch.float32).unsqueeze(1).to(self.device)
         logger.info(f'fit: y_tensor.shape: {y_tensor.shape}')
         self.classes_ = torch.unique(y_tensor)
-        dataset = TensorDataset(torch.tensor(X_normalized, dtype=torch.float32).to('cuda'), torch.tensor(y, dtype=torch.float32).unsqueeze(1).to('cuda'))
+        dataset = TensorDataset(torch.tensor(X_normalized, dtype=torch.float32).to(self.device), torch.tensor(y, dtype=torch.float32).unsqueeze(1).to(self.device))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         loss_values = []
         for epoch in range(self.epochs):
@@ -473,6 +473,8 @@ class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
         else:
             # Default to accuracy if no refit metric is specified
             score = accuracy_score(y, predictions)
+
+        return score
 
     def _run_search(self, evaluate_candidates):
         results = super()._run_search(evaluate_candidates)
