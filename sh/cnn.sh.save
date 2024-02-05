@@ -1,0 +1,71 @@
+#!/bin/sh
+### General options 
+### -- specify queue -- 
+#BSUB -q gpua100
+### -- set the job Name -- 
+#BSUB -J cnn
+### -- ask for number of cores (default: 1) -- 
+#BSUB -n 4
+### -- Select the resources: 1 gpu in exclusive process mode --
+#BSUB -gpu "num=1:mode=exclusive_process"
+### -- specify that we need X GB of memory per core/slot -- 
+#BSUB -R "rusage[mem=80GB]"
+### -- specify that we want the job to get killed if it exceeds X GB per core/slot -- 
+#BSUB -M 80GB
+### -- set walltime limit: hh:mm -- 
+#BSUB -W 24:00 
+### -- set the email address -- 
+# please uncomment the following line and put in your e-mail address,
+# if you want to receive e-mail notifications on a non-default address
+#BSUB -u pf2595@gmail.com
+### -- send notification at start -- 
+#BSUB -B 
+### -- send notification at completion -- 
+#BSUB -N 
+### -- Specify the output and error file. %J is the job-id -- 
+### -- -o and -e mean append, -oo and -eo mean overwrite -- 
+#BSUB -o logs/cnn.out 
+#BSUB -e logs/cnn.err 
+
+
+# script____________________________________
+
+# Activate environment
+source .PH/bin/activate
+
+# List of required Python packages
+packages=("pandas" "torch" "argparse" "numpy" "sentence_transformers" "transformers" "tensorflow" "scikit-learn" "joblib" "imbalanced-learn")
+
+# Loop over the packages
+#for package in "${packages[@]}"; do
+#   # Check if the package is installed
+#    if ! pip show $package > /dev/null; then
+#        # If the package is not installed, install it
+#        pip install $package
+#    fi
+#done
+
+nvidia-smi
+
+# Load the cuda module
+module load cuda/11.6
+
+# Run code
+
+script_path="./notebooks/pipe.py"
+
+# Command line arguments
+embedder="prott5"
+classifier="attention"
+logfile="log_self_none.txt"
+
+oversampling="none"
+param_grid="{'classifier__lr':[0.001],'classifier__batch_size':[8],'classifier__epochs':[100]}"
+
+# Run the Python script
+python3 $script_path --embedder $embedder --load_embeddings --classifier $classifier --self_attention --oversampling=$oversampling --train --param_grid=$param_grid --grid_search --logfile $logfile
+
+# Deactivate environment
+deactivate
+
+
