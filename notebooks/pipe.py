@@ -359,10 +359,18 @@ if args.train:
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
+        X_train = np.array(X_train)
+        X_test = np.array(X_test)
+
         # Normalize the data
+        X_train_reshaped = X_train.reshape(-1, X_train.shape[-1])
+        X_test_reshaped = X_test.reshape(-1, X_test.shape[-1])
         scaler = StandardScaler()
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
+        X_train_normalized = scaler.fit_transform(X_train_reshaped)
+        X_test_normalized = scaler.transform(X_test_reshaped)
+
+        X_train = X_train_normalized.reshape(X_train.shape)
+        X_test = X_test_normalized.reshape(X_test.shape)
 
         # Split dataset into training and validation sets
         train_size = int(0.8 * len(X_train))
