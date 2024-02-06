@@ -354,7 +354,7 @@ if not os.path.exists(MODELS_DIR):
 if args.train:
     if args.cnn:
         # Split X in train and test dataset
-        max_size = max(max(arr.shape[0] for arr in X))
+        max_size = max(arr.shape[0] for arr in X)
         X = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X]  # Pad arrays to same size, so that they can be converted to a tensor
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
