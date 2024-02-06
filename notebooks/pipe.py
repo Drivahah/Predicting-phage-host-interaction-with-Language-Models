@@ -356,8 +356,8 @@ if args.train:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
         # Split dataset into training and validation sets
-        train_size = int(0.8 * X_train.shape[0])
-        val_size = X_train.shape[0] - train_size
+        train_size = int(0.8 * len(X_train))
+        val_size = len(X_train) - train_size
         X_train, X_val = random_split(X_train, [train_size, val_size])
 
         # Define dataloaders
