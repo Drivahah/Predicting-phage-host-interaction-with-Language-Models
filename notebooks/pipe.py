@@ -394,7 +394,7 @@ if args.train:
             for epoch in range(num_epochs):
                 model.train()
                 running_loss = 0.0
-                for inputs, labels in train_loader:
+                for inputs, labels, _ in train_loader:
                     optimizer.zero_grad()
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
