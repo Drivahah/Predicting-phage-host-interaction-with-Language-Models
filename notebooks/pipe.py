@@ -22,6 +22,9 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
 import logging
 from datetime import datetime
+from sklearn.model_selection import train_test_split
+from torch.utils.data import random_split
+import pickle
 
 # Set workiiing directory to file location
 abspath = os.path.abspath(__file__)
@@ -348,158 +351,237 @@ param_grid = eval(args.param_grid)  # convert the string to a dictionary
 if not os.path.exists(MODELS_DIR):
     os.makedirs(MODELS_DIR)
 if args.train:
-    logger.info("TRAINING THE WHOLE MODEL")
-    logger.debug(f'Inner splits: {args.inner_splits}, outer splits: {args.outer_splits}')
-    best_outer_score = float(
-        "-inf"
-    )  # Initialize with a very small value for maximization
-    best_model = None
-    best_params = None
+    if args.cnn:
+        # Split X in train and test dataset
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-    # Outer cross-validation
-    outer_scores = []
-    outer_cv = StratifiedKFold(n_splits=args.outer_splits, shuffle=True, random_state=42)
-    cv_results_dict = dict()
-    best_dict = dict()
-    for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
-        logger.debug(f"Outer fold {fold+1}")
-        if prot:
-            X_train, X_test = X[train_index], X[test_index]
-        else:
-            X_train, X_test = [X[i] for i in train_index], [X[i] for i in test_index]
-            max_size = max(max(arr.shape[0] for arr in X_train), max(arr.shape[0] for arr in X_test))
-            X_train = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_train]  # Pad arrays to same size, so that they can be converted to a tensor
-            X_test = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_test]
-            X_train = np.array(X_train)
-            X_test = np.array(X_test)
+        # Split dataset into training and validation sets
+        train_size = int(0.8 * X_train.shape[0])
+        val_size = X_train.shape[0] - train_size
+        X_train, X_val = random_split(X_train, [train_size, val_size])
 
-        y_train, y_test = y[train_index], y[test_index]
-        logger.info(
-            f"X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}\nX_test[:5]:\n {X_test[:5]}\ny_test[:5]:\n {y_test[:5]}"
-        )
+        # Define dataloaders
+        train_loader = torch.utils.data.DataLoader(X_train, batch_size=32, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(X_val, batch_size=32, shuffle=False)
+        test_loader = torch.utils.data.DataLoader(X_test, batch_size=32, shuffle=False)
 
-        # Grid search and inner CV
-        if args.grid_search:
-            """
-            Inside grid.fit, all the hyperparameters combinations are tested.
-            For each combination, a stratified CV is performed on the training set.
-            Stratified means that the proportion of the classes is preserved in each fold.
-            The combination with the best score (folds average) is selected.
-            The selected combination of hyperparameters is then used to fit the pipeline on the whole training set.
-            This model is evaluated on the test set (i.e. 1 fold of the outer CV).
-            """
-            logger.debug("PERFORMING GRID SEARCH")
-            inner_cv = StratifiedKFold(n_splits=args.inner_splits, shuffle=True, random_state=42)
-            grid = GridSearchCV(
-                pipe,
-                param_grid,
-                cv=inner_cv,
-                scoring=scoring,
-                refit=refit,
-                verbose=3,
-                n_jobs=n_jobs,
-            )
-            grid.fit(X_train, y_train)
+        # Initialize the model, loss function, and optimizer
+        model = CNNAttentionNetwork(input_dim, self_attention=args.self_attention)
+        criterion = torch.nn.BCELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-            # Save the results of the grid search
-            cv_results_dict[f"fold_{fold}"] = grid.cv_results_
-            best_dict[f"fold_{fold}"] = dict()
-            best_dict[f"fold_{fold}"]["best_score"] = grid.best_score_
-            best_dict[f"fold_{fold}"]["best_params"] = grid.best_params_
-            best_dict[f"fold_{fold}"]["best_index"] = grid.best_index_  # index of the best combination of hyperparameters
-            
-            logger.info(f"Best parameters for fold {fold}: {grid.best_params_}")
-            logger.info(f"Best {refit} score for fold {fold}: {grid.best_score_}")
+        # Train the model
+        def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10):
+            train_loss = []  # List to store the training loss
+            val_f1_scores = []  # List to store the validation F1 scores
+            for epoch in range(num_epochs):
+                model.train()
+                running_loss = 0.0
+                for inputs, labels in train_loader:
+                    optimizer.zero_grad()
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
+                    running_loss += loss.item() * inputs.size(0)
 
-            outer_predictions[f"fold_{fold}"] = dict()
-            outer_predictions[f"fold_{fold}"]['y_test'] = y_test
-            outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
-            
-            # The best parameters are used to fit a new model - best_estimator_ - on the training set of the outer fold
-            # This model is evaluated on the test set of the outer fold, returning grid.score
-            if args.cnn:
-                outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
-                y_pred = grid.predict(X_test)
-                outer_score = f1_score(y_test, y_pred)
-            else:
-                outer_score = grid.score(X_test, y_test) 
-            logger.info(f"Outer {refit} score for fold {fold} using the model trained on outer training with the best parameters: {outer_score}")
-            
-        # Fit the pipeline on the training data without grid search and inner CV
-        else:
-            pipe.fit(X_train, y_train)
-            outer_score = pipe.score(X_test, y_test)
-            outer_predictions[f"fold_{fold}"] = dict()
-            outer_predictions[f"fold_{fold}"]['y_test'] = y_test
-            outer_predictions[f"fold_{fold}"]['y_proba'] = pipe.predict_proba(X_test)
+                # Validate the model
+                model.eval()
+                val_predictions = []
+                val_targets = []
+                for inputs, labels in val_loader:
+                    outputs = model(inputs)
+                    _, predictions = torch.max(outputs, 1)
+                    val_predictions.extend(predictions.tolist())
+                    val_targets.extend(labels.tolist())
 
-        outer_scores.append(outer_score)
+                val_f1 = f1_score(val_targets, val_predictions)
+                logger.info(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader.dataset)}, Validation F1: {val_f1}")
 
-        # Update best model
-        if outer_score > best_outer_score:
-            best_outer_score = outer_score
-            if args.grid_search:
-                best_model = grid.best_estimator_
-                best_outer_params = grid.best_params_
+                train_loss.append(running_loss/len(train_loader.dataset))  # Append the training loss to the list
+                val_f1_scores.append(val_f1)  # Append the validation F1 score to the list
 
-    best_dict["best_outer_score"] = best_outer_score
-    best_dict["outer_scores"] = outer_scores
-    best_dict["mean_outer_score"] = np.mean(outer_scores)
-    if args.grid_search:
-        best_dict["best_outer_params"] = best_outer_params
+            # Save the training loss and validation F1 scores as pickle files
+            with open(os.path.join(model_directory, 'train_loss.pkl'), 'wb') as f:
+                pickle.dump(train_loss, f)
+            with open(os.path.join(model_directory, 'val_f1_scores.pkl'), 'wb') as f:
+                pickle.dump(val_f1_scores, f)
 
-    # Save the best model
-    if best_model is not None:
-        
-        model_name = f"Model_{timestamp}.pkl"
-        joblib.dump(best_model, os.path.join(model_directory, model_name))
-        # Save the results of the grid search as json files
-        if args.grid_search:
-            logger.info(f"Saving grid search results in {model_directory}")
-            joblib.dump(cv_results_dict, os.path.join(model_directory, "cv_results.pkl"))
-            joblib.dump(best_dict, os.path.join(model_directory, "best_dict.pkl"))
-            joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
-        
-            logger.info(f"Best parameters across all outer folds: {best_outer_params}")
-            # Save the best parameters to a file
-            with open("best_parameters.txt", "a") as f:
-                f.write(f"Model: {model_name}\n")
-                f.write(f"Embedder: {args.embedder}\n")
-                f.write(f"Oversampling: {args.oversampling}\n")
-                f.write(f"classifier: {args.classifier}\n")
-                f.write(f"Hyperparameters: {best_outer_params}\n")
-                f.write(f"Outer score achieved by the model: {best_outer_score}\n")
-                f.write(f"All outer scores: {outer_scores}\n")
-                f.write("Outer splits: " + str(args.outer_splits) + "\n")
-                if args.grid_search:
-                    f.write(f'Inner splits: {str(args.inner_splits)}\n')
-                f.write("\n")
-        else:
-            logger.info(f"Best model saved as: {model_name}")
-            joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
-            joblib.dump(outer_scores, os.path.join(model_directory, "best_dict.pkl"))
+        # test the model
+        def test(model, test_loader):
+            model.eval()
+            test_predictions = []
+            test_targets = []
+            for inputs, labels in test_loader:
+                outputs = model(inputs)
+                _, predictions = torch.max(outputs, 1)
+                test_predictions.extend(predictions.tolist())
+                test_targets.extend(labels.tolist())
 
-            with open("best_parameters.txt", "a") as f:
-                f.write(f"Model: {model_name}\n")
-                f.write(f"Embedder: {args.embedder}\n")
-                f.write(f"Oversampling: {args.oversampling}\n")
-                f.write(f"classifier: {args.classifier}\n")
-                f.write(f"Outer score achieved by the model: {best_outer_score}\n")
-                f.write(f"All outer scores: {outer_scores}\n")
-                f.write("Outer splits: " + str(args.outer_splits) + "\n")
-                f.write("\n")
+            test_f1 = f1_score(test_targets, test_predictions)
+            logger.info(f"Test F1: {test_f1}")
 
-        logger.info(f"Best score across all outer folds: {best_outer_score}")
-        logger.info(f"Best model saved as: {model_name}")
+            # Save test predictions and targets as pickle files
+            with open(os.path.join(model_directory, 'test_predictions.pkl'), 'wb') as f:
+                pickle.dump(test_predictions, f)
+            with open(os.path.join(model_directory, 'test_targets.pkl'), 'wb') as f:
+                pickle.dump(test_targets, f)
 
-
+        train(model, train_loader, val_loader, criterion, optimizer, num_epochs=args.epochs)
+        test(model, test_loader)
     else:
-        logger.warning("No best model found.")
+        logger.info("TRAINING THE WHOLE MODEL")
+        logger.debug(f'Inner splits: {args.inner_splits}, outer splits: {args.outer_splits}')
+        best_outer_score = float(
+            "-inf"
+        )  # Initialize with a very small value for maximization
+        best_model = None
+        best_params = None
 
-    # Log the results of nested cross-validation
-    logger.info(
-        f"Nested cross-validation scores: {outer_scores}\nMean score: {np.mean(outer_scores)}"
-    )
+        # Outer cross-validation
+        outer_scores = []
+        outer_cv = StratifiedKFold(n_splits=args.outer_splits, shuffle=True, random_state=42)
+        cv_results_dict = dict()
+        best_dict = dict()
+        for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
+            logger.debug(f"Outer fold {fold+1}")
+            if prot:
+                X_train, X_test = X[train_index], X[test_index]
+            else:
+                X_train, X_test = [X[i] for i in train_index], [X[i] for i in test_index]
+                max_size = max(max(arr.shape[0] for arr in X_train), max(arr.shape[0] for arr in X_test))
+                X_train = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_train]  # Pad arrays to same size, so that they can be converted to a tensor
+                X_test = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_test]
+                X_train = np.array(X_train)
+                X_test = np.array(X_test)
+
+            y_train, y_test = y[train_index], y[test_index]
+            logger.info(
+                f"X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}\nX_test[:5]:\n {X_test[:5]}\ny_test[:5]:\n {y_test[:5]}"
+            )
+
+            # Grid search and inner CV
+            if args.grid_search:
+                """
+                Inside grid.fit, all the hyperparameters combinations are tested.
+                For each combination, a stratified CV is performed on the training set.
+                Stratified means that the proportion of the classes is preserved in each fold.
+                The combination with the best score (folds average) is selected.
+                The selected combination of hyperparameters is then used to fit the pipeline on the whole training set.
+                This model is evaluated on the test set (i.e. 1 fold of the outer CV).
+                """
+                logger.debug("PERFORMING GRID SEARCH")
+                inner_cv = StratifiedKFold(n_splits=args.inner_splits, shuffle=True, random_state=42)
+                grid = GridSearchCV(
+                    pipe,
+                    param_grid,
+                    cv=inner_cv,
+                    scoring=scoring,
+                    refit=refit,
+                    verbose=3,
+                    n_jobs=n_jobs,
+                )
+                grid.fit(X_train, y_train)
+
+                # Save the results of the grid search
+                cv_results_dict[f"fold_{fold}"] = grid.cv_results_
+                best_dict[f"fold_{fold}"] = dict()
+                best_dict[f"fold_{fold}"]["best_score"] = grid.best_score_
+                best_dict[f"fold_{fold}"]["best_params"] = grid.best_params_
+                best_dict[f"fold_{fold}"]["best_index"] = grid.best_index_  # index of the best combination of hyperparameters
+                
+                logger.info(f"Best parameters for fold {fold}: {grid.best_params_}")
+                logger.info(f"Best {refit} score for fold {fold}: {grid.best_score_}")
+
+                outer_predictions[f"fold_{fold}"] = dict()
+                outer_predictions[f"fold_{fold}"]['y_test'] = y_test
+                outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
+                
+                # The best parameters are used to fit a new model - best_estimator_ - on the training set of the outer fold
+                # This model is evaluated on the test set of the outer fold, returning grid.score
+                if args.cnn:
+                    outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
+                    y_pred = grid.predict(X_test)
+                    outer_score = f1_score(y_test, y_pred)
+                else:
+                    outer_score = grid.score(X_test, y_test) 
+                logger.info(f"Outer {refit} score for fold {fold} using the model trained on outer training with the best parameters: {outer_score}")
+                
+            # Fit the pipeline on the training data without grid search and inner CV
+            else:
+                pipe.fit(X_train, y_train)
+                outer_score = pipe.score(X_test, y_test)
+                outer_predictions[f"fold_{fold}"] = dict()
+                outer_predictions[f"fold_{fold}"]['y_test'] = y_test
+                outer_predictions[f"fold_{fold}"]['y_proba'] = pipe.predict_proba(X_test)
+
+            outer_scores.append(outer_score)
+
+            # Update best model
+            if outer_score > best_outer_score:
+                best_outer_score = outer_score
+                if args.grid_search:
+                    best_model = grid.best_estimator_
+                    best_outer_params = grid.best_params_
+
+        best_dict["best_outer_score"] = best_outer_score
+        best_dict["outer_scores"] = outer_scores
+        best_dict["mean_outer_score"] = np.mean(outer_scores)
+        if args.grid_search:
+            best_dict["best_outer_params"] = best_outer_params
+
+        # Save the best model
+        if best_model is not None:
+            
+            model_name = f"Model_{timestamp}.pkl"
+            joblib.dump(best_model, os.path.join(model_directory, model_name))
+            # Save the results of the grid search as json files
+            if args.grid_search:
+                logger.info(f"Saving grid search results in {model_directory}")
+                joblib.dump(cv_results_dict, os.path.join(model_directory, "cv_results.pkl"))
+                joblib.dump(best_dict, os.path.join(model_directory, "best_dict.pkl"))
+                joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
+            
+                logger.info(f"Best parameters across all outer folds: {best_outer_params}")
+                # Save the best parameters to a file
+                with open("best_parameters.txt", "a") as f:
+                    f.write(f"Model: {model_name}\n")
+                    f.write(f"Embedder: {args.embedder}\n")
+                    f.write(f"Oversampling: {args.oversampling}\n")
+                    f.write(f"classifier: {args.classifier}\n")
+                    f.write(f"Hyperparameters: {best_outer_params}\n")
+                    f.write(f"Outer score achieved by the model: {best_outer_score}\n")
+                    f.write(f"All outer scores: {outer_scores}\n")
+                    f.write("Outer splits: " + str(args.outer_splits) + "\n")
+                    if args.grid_search:
+                        f.write(f'Inner splits: {str(args.inner_splits)}\n')
+                    f.write("\n")
+            else:
+                logger.info(f"Best model saved as: {model_name}")
+                joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
+                joblib.dump(outer_scores, os.path.join(model_directory, "best_dict.pkl"))
+
+                with open("best_parameters.txt", "a") as f:
+                    f.write(f"Model: {model_name}\n")
+                    f.write(f"Embedder: {args.embedder}\n")
+                    f.write(f"Oversampling: {args.oversampling}\n")
+                    f.write(f"classifier: {args.classifier}\n")
+                    f.write(f"Outer score achieved by the model: {best_outer_score}\n")
+                    f.write(f"All outer scores: {outer_scores}\n")
+                    f.write("Outer splits: " + str(args.outer_splits) + "\n")
+                    f.write("\n")
+
+            logger.info(f"Best score across all outer folds: {best_outer_score}")
+            logger.info(f"Best model saved as: {model_name}")
+
+
+        else:
+            logger.warning("No best model found.")
+
+        # Log the results of nested cross-validation
+        logger.info(
+            f"Nested cross-validation scores: {outer_scores}\nMean score: {np.mean(outer_scores)}"
+        )
 
 PREDICTIONS_DIR = os.path.join("..", "data", "predictions")
 if not os.path.exists(PREDICTIONS_DIR):
