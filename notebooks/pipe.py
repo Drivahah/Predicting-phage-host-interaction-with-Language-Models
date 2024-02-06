@@ -34,6 +34,9 @@ os.chdir(dname)
 
 # Import custom modules
 import sys
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import random_split, DataLoader
 
 sys.path.append("../src")
 from PipelineFunctions import (
@@ -357,30 +360,31 @@ if args.train:
         max_size = max(arr.shape[0] for arr in X)
         X = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X]  # Pad arrays to same size, so that they can be converted to a tensor
 
+        # Split dataset into training and testing sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-        X_train = np.array(X_train)
-        X_test = np.array(X_test)
-
         # Normalize the data
-        X_train_reshaped = X_train.reshape(-1, X_train.shape[-1])
-        X_test_reshaped = X_test.reshape(-1, X_test.shape[-1])
         scaler = StandardScaler()
-        X_train_normalized = scaler.fit_transform(X_train_reshaped)
-        X_test_normalized = scaler.transform(X_test_reshaped)
+        X_train_normalized = scaler.fit_transform(X_train)
+        X_test_normalized = scaler.transform(X_test)
 
-        X_train = X_train_normalized.reshape(X_train.shape)
-        X_test = X_test_normalized.reshape(X_test.shape)
+        # Convert numpy arrays to tensors
+        X_train_tensor = torch.tensor(X_train_normalized, dtype=torch.float32)
+        X_test_tensor = torch.tensor(X_test_normalized, dtype=torch.float32)
+        y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
+        y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
 
-        # Split dataset into training and validation sets
-        train_size = int(0.8 * len(X_train))
-        val_size = len(X_train) - train_size
-        X_train, X_val = random_split(X_train, [train_size, val_size])
+        # Split training dataset into training and validation sets
+        train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
+        train_size = int(0.8 * len(train_dataset))
+        val_size = len(train_dataset) - train_size
+        train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
 
         # Define dataloaders
-        train_loader = torch.utils.data.DataLoader(X_train, batch_size=32, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(X_val, batch_size=32, shuffle=False)
-        test_loader = torch.utils.data.DataLoader(X_test, batch_size=32, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+        test_dataset = torch.utils.data.TensorDataset(X_test_tensor, y_test_tensor)
+        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
         # Initialize the model, loss function, and optimizer
         model = CNNAttentionNetwork(input_dim, self_attention=args.self_attention)
@@ -394,7 +398,7 @@ if args.train:
             for epoch in range(num_epochs):
                 model.train()
                 running_loss = 0.0
-                for inputs, labels, _ in train_loader:
+                for inputs, labels in train_loader:
                     optimizer.zero_grad()
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
