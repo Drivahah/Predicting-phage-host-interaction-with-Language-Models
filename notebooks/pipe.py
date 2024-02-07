@@ -403,7 +403,7 @@ if args.train:
 
         # Instantiate the BCE loss function with class weights
         class_weights = torch.tensor([weight_negative, weight_positive])
-        criterion = nn.BCELoss(weight=class_weights)
+        criterion = torch.nn.BCELoss(weight=class_weights)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
