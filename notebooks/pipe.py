@@ -396,13 +396,23 @@ if args.train:
 
         # Initialize the model, loss function, and optimizer
         model = CNNAttentionNetwork(input_dim, self_attention=args.self_attention)
-        criterion = torch.nn.BCELoss()
+
+        # Define the class weights for the positive and negative classes
+        weight_negative = 1.0  # Weight for the negative class
+        weight_positive = 10.0  # Weight for the positive class
+
+        # Instantiate the BCE loss function with class weights
+        class_weights = torch.tensor([weight_negative, weight_positive])
+        criterion = nn.BCELoss(weight=class_weights)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-        # Train the model
-        def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10):
+
+        def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10, patience=3):
             train_loss = []  # List to store the training loss
             val_f1_scores = []  # List to store the validation F1 scores
+            best_val_f1 = -np.inf
+            early_stopping_counter = 0
+
             for epoch in range(num_epochs):
                 model.train()
                 running_loss = 0.0
@@ -431,6 +441,15 @@ if args.train:
 
                 train_loss.append(running_loss/len(train_loader.dataset))  # Append the training loss to the list
                 val_f1_scores.append(val_f1)  # Append the validation F1 score to the list
+
+                if val_f1 > best_val_f1:
+                    best_val_f1 = val_f1
+                    early_stopping_counter = 0
+                else:
+                    early_stopping_counter += 1
+                    if early_stopping_counter >= patience:
+                        logger.info(f"Early stopping at epoch {epoch+1}")
+                        break
 
             # Save the training loss and validation F1 scores as pickle files
             with open(os.path.join(model_directory, 'train_loss.pkl'), 'wb') as f:
