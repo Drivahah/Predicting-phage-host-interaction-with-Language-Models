@@ -370,8 +370,8 @@ if args.train:
         X_test_reshaped = X_test.reshape(-1, X_test.shape[-1])
 
         scaler = StandardScaler()
-        X_train_normalized = scaler.fit_transform(X_train)
-        X_test_normalized = scaler.transform(X_test)
+        X_train_normalized = scaler.fit_transform(X_train_reshaped)
+        X_test_normalized = scaler.transform(X_test_reshaped)
 
         X_train_normalized = X_train_normalized.reshape(X_train.shape)
         X_test_normalized = X_test_normalized.reshape(X_test.shape)
