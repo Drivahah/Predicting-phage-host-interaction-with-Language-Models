@@ -409,6 +409,7 @@ if args.train:
                 for inputs, labels in train_loader:
                     optimizer.zero_grad()
                     outputs = model(inputs)
+                    labels = labels.view(-1, 1)  # Reshape labels to match the shape of outputs
                     loss = criterion(outputs, labels)
                     loss.backward()
                     optimizer.step()
