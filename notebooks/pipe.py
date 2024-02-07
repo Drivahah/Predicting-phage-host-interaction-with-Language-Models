@@ -410,6 +410,7 @@ if args.train:
                     optimizer.zero_grad()
                     outputs = model(inputs)
                     labels = labels.view(-1, 1)  # Reshape labels to match the shape of outputs
+                    labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
                     loss = criterion(outputs, labels)
                     loss.backward()
                     optimizer.step()
