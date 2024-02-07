@@ -357,7 +357,7 @@ class CNNAttentionNetwork(nn.Module):
         self.fc = nn.Linear(4161, 1).to('cuda')
 
     def forward(self, x):
-        attention_out = self.attention(x)
+        attention_out = self.attention(x.to('cuda'))
         logger.info(f'attention_out.shape: {attention_out.shape}')
 
         # Reshape for 2D Convolution
