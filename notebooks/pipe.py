@@ -421,6 +421,7 @@ if args.train:
                     outputs = model(inputs)
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
+                    labels.view(-1, 1)
                     labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
                     loss = criterion(outputs, labels)
                     loss.backward()
