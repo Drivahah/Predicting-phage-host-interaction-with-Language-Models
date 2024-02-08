@@ -380,7 +380,11 @@ class CNNAttentionNetwork(nn.Module):
 
         # Fully connected layer
         out = torch.sigmoid(self.fc(x))
-        return out
+
+         # Apply threshold to convert probabilities to binary predictions
+        predictions = (out >= 0.5).float()  # Convert boolean tensor to float
+
+        return predictions
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scoring=None, refit=None, num_filters=64, kernel_size=3):

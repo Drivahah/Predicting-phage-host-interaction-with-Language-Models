@@ -421,10 +421,8 @@ if args.train:
                     outputs = model(inputs)
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
-                    labels_onehot = torch.zeros(labels.size(0), outputs.size(1))
-                    labels_onehot.scatter_(1, labels.view(-1, 1).long(), 1)
-                    labels_onehot = labels_onehot.to(outputs.device)  # Move labels tensor to the same device as outputs
-                    loss = criterion(outputs, labels_onehot)
+                    labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
+                    loss = criterion(outputs, labels)
                     loss.backward()
                     optimizer.step()
                     running_loss += loss.item() * inputs.size(0)
