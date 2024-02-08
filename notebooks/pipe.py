@@ -419,7 +419,7 @@ if args.train:
                 for inputs, labels in train_loader:
                     optimizer.zero_grad()
                     outputs = model(inputs)
-                    labels_onehot = torch.zeros(labels.size(0), 2)
+                    labels_onehot = torch.zeros(labels.size(0), outputs.size(1))
                     labels_onehot.scatter_(1, labels.view(-1, 1).long(), 1)
                     labels_onehot = labels_onehot.to(outputs.device)  # Move labels tensor to the same device as outputs
                     loss = criterion(outputs, labels_onehot)
