@@ -26,6 +26,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import random_split
 import pickle
 from sklearn.preprocessing import StandardScaler
+import torch.nn.functional as F
 
 # Set workiiing directory to file location
 abspath = os.path.abspath(__file__)
@@ -421,6 +422,7 @@ if args.train:
                     outputs = model(inputs)
                     labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
                     labels = labels.view(-1, 1)  # Reshape labels tensor to match the shape of outputs tensor
+                    labels = F.one_hot(labels, num_classes=2)  # Convert labels to one-hot binary
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
                     loss = criterion(outputs, labels)
