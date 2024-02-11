@@ -419,10 +419,10 @@ if args.train:
                 for inputs, labels in train_loader:
                     optimizer.zero_grad()
                     outputs = model(inputs)
+                    labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
+                    labels = labels.view(-1, 1)  # Reshape labels tensor to match the shape of outputs tensor
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
-                    labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
-                    labels = labels.view(-1, 1)
                     loss = criterion(outputs, labels)
                     loss.backward()
                     optimizer.step()
