@@ -423,7 +423,7 @@ if args.train:
                     labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
                     labels = labels.view(-1, 1)  # Reshape labels tensor to match the shape of outputs tensor
                     labels = labels.float()  # Convert labels to index tensor
-                    labels = F.one_hot(labels.squeeze(), num_classes=2)  # Convert labels to one-hot binary
+                    labels = F.one_hot(labels, num_classes=2)  # Convert labels to one-hot binary
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
                     loss = criterion(outputs, labels)
