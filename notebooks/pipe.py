@@ -434,7 +434,7 @@ if args.train:
 
                     optimizer.zero_grad()
                     inputs = inputs.to(device)  # Move inputs to device
-                    labels = labels.to(device).float()  # Move labels to device and convert to float tensor
+                    labels = labels.to(device).view(-1, 1).float()  # Move labels to device and convert to float tensor
                     outputs = model(inputs)
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
