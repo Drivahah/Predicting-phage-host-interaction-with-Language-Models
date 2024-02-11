@@ -426,7 +426,7 @@ if args.train:
                     labels = F.one_hot(labels, num_classes=2)  # Convert labels to one-hot binary
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
-                    loss = criterion(outputs, labels.float())
+                    loss = criterion(outputs, labels.float().to(outputs.device) )
                     loss.backward()
                     optimizer.step()
                     running_loss += loss.item() * inputs.size(0)
