@@ -413,20 +413,32 @@ if args.train:
             val_f1_scores = []  # List to store the validation F1 scores
             best_val_f1 = -np.inf
             early_stopping_counter = 0
+            device = 'cuda:0'
 
             for epoch in range(num_epochs):
                 model.train()
                 running_loss = 0.0
                 for inputs, labels in train_loader:
+                    # optimizer.zero_grad()
+                    # outputs = model(inputs)
+                    # labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
+                    # # labels = labels.view(-1, 1)  # Reshape labels tensor to match the shape of outputs tensor
+                    # labels = labels.long()  # Convert labels to index tensor
+                    # labels = F.one_hot(labels, num_classes=2)  # Convert labels to one-hot binary
+                    # logger.info(f"Outputs: {outputs}")
+                    # logger.info(f"Labels: {labels}")
+                    # loss = criterion(outputs[:,1], labels.float())
+                    # loss.backward()
+                    # optimizer.step()
+                    # running_loss += loss.item() * inputs.size(0)
+
                     optimizer.zero_grad()
+                    inputs = inputs.to(device)  # Move inputs to device
+                    labels = labels.to(device).float()  # Move labels to device and convert to float tensor
                     outputs = model(inputs)
-                    labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
-                    # labels = labels.view(-1, 1)  # Reshape labels tensor to match the shape of outputs tensor
-                    labels = labels.long()  # Convert labels to index tensor
-                    labels = F.one_hot(labels, num_classes=2)  # Convert labels to one-hot binary
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
-                    loss = criterion(outputs[:,1], labels.float())
+                    loss = criterion(outputs, labels)  # Use BCELoss
                     loss.backward()
                     optimizer.step()
                     running_loss += loss.item() * inputs.size(0)

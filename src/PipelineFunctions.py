@@ -385,9 +385,9 @@ class CNNAttentionNetwork(nn.Module):
         # predictions = (out >= 0.5).float()  # Convert boolean tensor to float
 
         # Split the tensor into the proibabilities of the two classes
-        predictions = torch.cat((1 - out, out), axis=1)
+        # predictions = torch.cat((1 - out, out), axis=1)
 
-        return predictions
+        return out
 
 class SklearnCompatibleAttentionClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, model, model_dir, lr=0.01, batch_size=3, epochs=20, scoring=None, refit=None, num_filters=64, kernel_size=3):
