@@ -411,7 +411,7 @@ if args.train:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
-        def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10, patience=3):
+        def train(model, train_loader, val_loader, optimizer, num_epochs=10, patience=3):
             train_loss = []  # List to store the training loss
             val_f1_scores = []  # List to store the validation F1 scores
             best_val_f1 = -np.inf
@@ -505,7 +505,7 @@ if args.train:
             with open(os.path.join(model_directory, 'test_targets.pkl'), 'wb') as f:
                 pickle.dump(test_targets, f)
 
-        train(model, train_loader, val_loader, criterion, optimizer, num_epochs=args.epochs)
+        train(model, train_loader, val_loader, optimizer, num_epochs=args.epochs)
         test(model, test_loader)
     else:
         logger.info("TRAINING THE WHOLE MODEL")
