@@ -492,7 +492,7 @@ if args.train:
             test_targets = []
             for inputs, labels in test_loader:
                 outputs = model(inputs)
-                _, predictions = torch.max(outputs, 1)
+                predictions = [0 if output < 0.5 else 1 for output in outputs]
                 test_predictions.extend(predictions.tolist())
                 test_targets.extend(labels.tolist())
 
@@ -504,6 +504,8 @@ if args.train:
                 pickle.dump(test_predictions, f)
             with open(os.path.join(model_directory, 'test_targets.pkl'), 'wb') as f:
                 pickle.dump(test_targets, f)
+            with open(os.path.join(model_directory, 'outputs.pkl'), 'wb') as f:
+                pickle.dump(outputs, f)
 
         train(model, train_loader, val_loader, optimizer, num_epochs=args.epochs)
         test(model, test_loader)
