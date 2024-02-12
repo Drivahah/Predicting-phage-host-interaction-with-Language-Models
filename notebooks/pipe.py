@@ -403,8 +403,11 @@ if args.train:
         weight_positive = 10.0  # Weight for the positive class
 
         # Instantiate the BCE loss function with class weights
-        class_weights = torch.tensor([weight_negative, weight_positive])
-        criterion = torch.nn.BCELoss(weight=class_weights)
+        # class_weights = torch.tensor([weight_negative, weight_positive])
+        # weight = torch.zeros_like(target)
+        # weight[target==0] = 1
+        # weight[target==1] = 10
+        # criterion = torch.nn.BCELoss(weight=class_weights)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
@@ -434,11 +437,19 @@ if args.train:
 
                     optimizer.zero_grad()
                     inputs = inputs.to(device)  # Move inputs to device
-                    labels = labels.to(device).view(-1, 1).float()  # Move labels to device and convert to float tensor
+                    labels = labels.to(device) # Move labels to device and convert to float tensor
+
+                    # Calculate class weights dynamically
+                    class_weights = torch.zeros_like(labels, dtype=torch.float)
+                    class_weights[labels == 0] = 1  # Weight for class 0
+                    class_weights[labels == 1] = 10  # Weight for class 1
+
                     outputs = model(inputs)
                     logger.info(f"Outputs: {outputs}")
                     logger.info(f"Labels: {labels}")
-                    loss = criterion(outputs, labels)  # Use BCELoss
+
+                    criterion = torch.nn.BCELoss(weight=class_weights)
+                    loss = criterion(outputs.squeeze(), labels.float())  # Use BCELoss
                     loss.backward()
                     optimizer.step()
                     running_loss += loss.item() * inputs.size(0)
