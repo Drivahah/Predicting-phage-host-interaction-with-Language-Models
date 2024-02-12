@@ -460,7 +460,7 @@ if args.train:
                 val_targets = []
                 for inputs, labels in val_loader:
                     outputs = model(inputs)
-                    _, predictions = torch.max(outputs, 1)
+                    predictions = [0 if output < 0.5 else 1 for output in outputs]
                     val_predictions.extend(predictions.tolist())
                     val_targets.extend(labels.tolist())
 
@@ -490,11 +490,13 @@ if args.train:
             model.eval()
             test_predictions = []
             test_targets = []
+            outputs_list = []
             for inputs, labels in test_loader:
                 outputs = model(inputs)
                 predictions = [0 if output < 0.5 else 1 for output in outputs]
                 test_predictions.extend(predictions)
                 test_targets.extend(labels.tolist())
+                outputs_list.append(outputs.detach().numpy())
 
             test_f1 = f1_score(test_targets, test_predictions)
             logger.info(f"Test F1: {test_f1}")
@@ -505,7 +507,7 @@ if args.train:
             with open(os.path.join(model_directory, 'test_targets.pkl'), 'wb') as f:
                 pickle.dump(test_targets, f)
             with open(os.path.join(model_directory, 'outputs.pkl'), 'wb') as f:
-                pickle.dump(outputs, f)
+                np.save(f, np.concatenate(outputs_list))
 
         train(model, train_loader, val_loader, optimizer, num_epochs=args.epochs)
         test(model, test_loader)
