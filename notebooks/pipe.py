@@ -493,7 +493,7 @@ if args.train:
             for inputs, labels in test_loader:
                 outputs = model(inputs)
                 predictions = [0 if output < 0.5 else 1 for output in outputs]
-                test_predictions.extend(predictions.tolist())
+                test_predictions.extend(predictions)
                 test_targets.extend(labels.tolist())
 
             test_f1 = f1_score(test_targets, test_predictions)
