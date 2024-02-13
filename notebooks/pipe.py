@@ -461,7 +461,7 @@ if args.train:
                 for inputs, labels in val_loader:
                     outputs = model(inputs)
                     predictions = [0 if output < 0.5 else 1 for output in outputs]
-                    val_predictions.extend(predictions.tolist())
+                    val_predictions.extend(predictions)
                     val_targets.extend(labels.tolist())
 
                 val_f1 = f1_score(val_targets, val_predictions)
