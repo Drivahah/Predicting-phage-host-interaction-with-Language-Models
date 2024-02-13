@@ -409,7 +409,7 @@ if args.train:
         # weight[target==0] = 1
         # weight[target==1] = 10
         # criterion = torch.nn.BCELoss(weight=class_weights)
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 
         def train(model, train_loader, val_loader, optimizer, num_epochs=800, patience=50):
