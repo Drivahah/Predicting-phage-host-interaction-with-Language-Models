@@ -511,7 +511,7 @@ if args.train:
             with open(os.path.join(model_directory, 'outputs.pkl'), 'wb') as f:
                 np.save(f, np.concatenate(outputs_list))
 
-        train(model, train_loader, val_loader, optimizer, num_epochs=args.epochs)
+        train(model, train_loader, val_loader, optimizer, num_epochs=800)
         test(model, test_loader)
     else:
         logger.info("TRAINING THE WHOLE MODEL")
