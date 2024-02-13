@@ -496,7 +496,7 @@ if args.train:
                 predictions = [0 if output < 0.5 else 1 for output in outputs]
                 test_predictions.extend(predictions)
                 test_targets.extend(labels.tolist())
-                outputs_list.append(outputs.detach().numpy())
+                outputs_list.append(outputs.detach().cpu().numpy())
 
             test_f1 = f1_score(test_targets, test_predictions)
             logger.info(f"Test F1: {test_f1}")
