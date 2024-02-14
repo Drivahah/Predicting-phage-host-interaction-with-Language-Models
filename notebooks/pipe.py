@@ -412,7 +412,7 @@ if args.train:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 
 
-        def train(model, train_loader, val_loader, optimizer, num_epochs=800, patience=50):
+        def train(model, train_loader, val_loader, optimizer, num_epochs=800, patience=50, early_stopping=True):
             train_loss = []  # List to store the training loss
             val_f1_scores = []  # List to store the validation F1 scores
             best_val_f1 = -np.inf
@@ -472,14 +472,15 @@ if args.train:
                 train_loss.append(running_loss/len(train_loader.dataset))  # Append the training loss to the list
                 val_f1_scores.append(val_f1)  # Append the validation F1 score to the list
 
-                if val_f1 > best_val_f1:
-                    best_val_f1 = val_f1
-                    early_stopping_counter = 0
-                else:
-                    early_stopping_counter += 1
-                    if early_stopping_counter >= patience:
-                        logger.info(f"Early stopping at epoch {epoch+1}")
-                        break
+                if early_stopping:
+                    if val_f1 > best_val_f1:
+                        best_val_f1 = val_f1
+                        early_stopping_counter = 0
+                    else:
+                        early_stopping_counter += 1
+                        if early_stopping_counter >= patience:
+                            logger.info(f"Early stopping at epoch {epoch+1}")
+                            break
 
             # Save the training loss and validation F1 scores as pickle files
             with open(os.path.join(model_directory, 'train_loss.pkl'), 'wb') as f:
@@ -511,7 +512,7 @@ if args.train:
             with open(os.path.join(model_directory, 'outputs.pkl'), 'wb') as f:
                 np.save(f, np.concatenate(outputs_list))
 
-        train(model, train_loader, val_loader, optimizer, num_epochs=800)
+        train(model, train_loader, val_loader, optimizer, num_epochs=800, early_stopping=False)
         test(model, test_loader)
     else:
         logger.info("TRAINING THE WHOLE MODEL")
