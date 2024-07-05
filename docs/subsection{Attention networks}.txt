@@ -1,0 +1,31 @@
+%This goes in the end of the python list
+\item PyTorch exhibits fast performances in the creation of deep learning models. The package has three levels of abstraction. First, the “tensor”, an N-dimensional array. It resembles a NumPy array and uses graphical processing units (GPUs) for parallel computations. Second, the “variable” or “node” of a graph, which stores both data and the gradients necessary for backpropagation. Lastly, the “module”, embodies a neural network’s layer comprised of learnable weights \cite{Imambi2021}
+
+
+
+% This goes in the end of \section{procedure}, after the bullet ppint
+A huge number of combinations could be attained this way. However, it would make little to no sense to include them in the dataset, considering the few positive samples available. The final set comprises 1112 points, 107 of which are positive pairs, and the rest are equally distributed among the three negative kinds. 
+
+For the modeling part, the data is loaded in a pipeline which is built out of three consecutive components: the language model to produce the embeddings, the oversampling module, and the final classifier. The script can be run specifying the desired component to use in each segment of the pipeline from the command line of the terminal. The embeddings of the aminoacidic sequences are produced sequentially - first, the phage sequences, and then the bacterial - due to huge memory requirements for their parallelization. 
+
+It must be noted that the embeddings are treated in different ways in the function of the final classifier. The random forest can easily handle protein-level representations. In this case, the phage and bacterial embeddings - each of size 1024 - are concatenated side-by-side. The random forest is thus fed vectors of size 1 x 2048. On the other hand, attention mechanisms rely on relative connections among each word in the sentence. For this reason, the embeddings should be kept at the per-residue level. Indeed, the protein representation would be an averaging along the amino acids of the sequence - i.e. the words of the sentence. The phage and bacteria embeddings are concatenated along the amino acids so that each input pair has the dimensions of (length of phage sequence + bacterial sequence) x 1024. A single protein string can be thousands of tokens long. It follows that the latter approach requires more memory and computation. 
+
+The embeddings are produced once for all the data at the beginning of the pipeline, and they can be saved and loaded the next time the script runs. On the other hand, the resampling and the classification must be performed inside the nested cross-validation. Generating the synthetic samples before arranging the data into folds would result in some identical observations between train and test sets, leading to optimistic performance estimations.
+
+
+
+
+% This goes after random forests
+\subsection{Attention networks}
+Sequential input was historically managed with recurrent neural networks (RNN) and derivates. However, they are constrained by the difficulty of relating distant parts of the sentence. In the last few years, transformers like the ones cited in the language processing paragraph have been used. This kind of model relies on the attention mechanism to draw global dependencies between input and output, overcoming RNNs’ main limitation. On top of that, attention modules are highly parallelizable, allowing faster training. 
+
+In this project, two versions of an attention network were exploited: the first uses an attention module as described in \cite{vaswani2017attention}, the other is a simplified version. In the first, a typical attention function maps the input to three different matrices: query, key, and values (Q, K, V). This is done by multiplying the embedded sequence with three different learnable sets of weights. Q represents the words being evaluated, K matrix encodes the relationships between each token pair, and lastly, V carries information about the content of each word. An attention score is obtained as the softmax of the dot product of Q and K, scaled by the square root of the key vector dimensionality. The scaling aims to stabilize the learning gradients, while the softmax ensures that the sum of the elements of each vector equals 1 - in other words, ensures that each word associates with a percentage of attention that should be put on the other words. The attention’s output is determined by the multiplication of the attention score matrix with the values matrix. Here, every row is the representation of a token of the initial sentence. Finally, the attention output passes through a simple feed-forward layer, with a sigmoid activation to perform the binary classification.
+
+The second attention network is a simplified version. Unlike the previous case, it does not include separate key, query, and value vectors, but has a single parameter vector. The attention score is obtained by multiplying the input sequence by the parameter vector, then applying a hyperbolic tangent function to squeeze the results between -1 and 1, and finally applying SoftMax. In the end, a weighted output is generated by multiplying the initial input and the attention score matrix. 
+
+During the training of both networks, the following sets of parameters were used:
+\begin{itemize}
+    \item \textbf{Learning rate}: [0.1, 0.2, 0.05]
+    \item \textbf{Batch size}: [3]
+    \item \textbf{Epochs}: [50, 100, 300]
+\end{itemize}
