@@ -1,0 +1,31 @@
+Loaded module: cuda/11.6
+You are using the default legacy behaviour of the <class 'transformers.models.t5.tokenization_t5.T5Tokenizer'>. This is expected, and simply means that the `legacy` (previous) behavior will be used so nothing changes for you. If you want to use the new behaviour, set `legacy=False`. This should only be set if you understand what it means, and thouroughly read the reason why this was added as explained in https://github.com/huggingface/transformers/pull/24565
+INFO:Pipeline:LOAD DATA
+Data shape: X=(1106, 2), y=(1106,)
+INFO:Pipeline:TRAINING THE WHOLE MODEL
+INFO:Pipeline:Best parameters: {'classifier__batch_size': 3, 'classifier__epochs': 10, 'classifier__lr': 0.1}
+INFO:Pipeline:Score for f1: 0.5225225225225225
+INFO:Pipeline:Score for accuracy: [0.89142747 0.90771528 0.90910901 0.907754   0.91046955 0.91181904]
+INFO:Pipeline:Score for precision: [0.47168803 0.52735043 0.52145969 0.51610086 0.52773137 0.54176688]
+INFO:Pipeline:Score for recall: [0.77596618 0.72101449 0.80374396 0.71799517 0.69021739 0.66243961]
+INFO:Pipeline:Score for f1: [0.58197332 0.59870287 0.63187951 0.59869947 0.59505376 0.59511524]
+INFO:Pipeline:Score for roc_auc: [0.94147952 0.94547809 0.94514351 0.94190386 0.94092462 0.9409491 ]
+INFO:Pipeline:Best parameters: {'classifier__batch_size': 3, 'classifier__epochs': 10, 'classifier__lr': 0.01}
+INFO:Pipeline:Score for f1: 0.5486725663716814
+INFO:Pipeline:Score for accuracy: [0.87520049 0.90637686 0.88468005 0.89420386 0.89013329 0.88604613]
+INFO:Pipeline:Score for precision: [0.44625    0.51425287 0.44516922 0.4640905  0.45104967 0.43140633]
+INFO:Pipeline:Score for recall: [0.76147343 0.64975845 0.76147343 0.60748792 0.60748792 0.60809179]
+INFO:Pipeline:Score for f1: [0.54459562 0.56996665 0.56142172 0.52617414 0.51726303 0.50299018]
+INFO:Pipeline:Score for roc_auc: [0.9131958  0.91254026 0.91797232 0.88931867 0.88888345 0.89036591]
+INFO:Pipeline:Best parameters: {'classifier__batch_size': 3, 'classifier__epochs': 10, 'classifier__lr': 0.01}
+INFO:Pipeline:Score for f1: 0.5925925925925926
+INFO:Pipeline:Score for accuracy: [0.85365854 0.8604336  0.85907859 0.8604336  0.86178862 0.85772358]
+INFO:Pipeline:Score for precision: [0.37922509 0.40278275 0.39419935 0.38489279 0.36964803 0.35307285]
+INFO:Pipeline:Score for recall: [0.65277778 0.80555556 0.69444444 0.56944444 0.52777778 0.48611111]
+INFO:Pipeline:Score for f1: [0.46573699 0.5312833  0.49054917 0.44006734 0.42811023 0.37430934]
+INFO:Pipeline:Score for roc_auc: [0.90071321 0.90765766 0.91072322 0.87287287 0.87406156 0.875     ]
+INFO:Pipeline:Best parameters across all outer folds: {'classifier__batch_size': 3, 'classifier__epochs': 10, 'classifier__lr': 0.01}
+INFO:Pipeline:Best score across all outer folds: 0.5925925925925926
+INFO:Pipeline:Best model saved as: Model_20240109132734.pkl
+INFO:Pipeline:Nested cross-validation scores: [0.5225225225225225, 0.5486725663716814, 0.5925925925925926]
+Mean score: 0.5545958938289322
