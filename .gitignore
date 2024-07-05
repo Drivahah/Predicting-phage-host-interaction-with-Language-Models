@@ -93,6 +93,7 @@ data/external/
 # Virtual environment
 ./PH/
 PH/
+.PH/
 
 # .err and .out logs
 *.err
@@ -106,3 +107,19 @@ PH/
 
 # End of notebook test
 /notebooks/*test.txt
+
+#logs
+/logs/*
+
+#models
+/models/*
+
+#best model in notebooks and log
+/notebooks/*.txt
+/notebooks/*.pkl
+
+#references
+/references/*
+
+/docs/Presentation_images
+/latex_pictures

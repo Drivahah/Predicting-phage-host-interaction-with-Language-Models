@@ -1,442 +1,681 @@
-# import the libraries
+# region Imports_______________________________________________________________________________________________________________________
 import os
-import pandas as pd
-import torch
 import argparse
 import numpy as np
-# from sentence_transformers import SentenceTransformer
-# from transformers import AutoTokenizer, AutoModel
-# from tensorflow.keras import layers
-# from tensorflow.keras.models import Model
-# from tensorflow.keras.layers import Input
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV, cross_val_score, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.metrics import (
+    make_scorer,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+)
 import joblib
+import torch
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE, ADASYN
-from transformers import T5Tokenizer, T5EncoderModel, XLNetTokenizer, XLNetModel
-# from torch.optim.lr_scheduler import StepLR
-# from torch.utils.data import TensorDataset, DataLoader
 import logging
-from transformers import AdamW
-# import ast
 from datetime import datetime
+from sklearn.model_selection import train_test_split
+from torch.utils.data import random_split
+import pickle
+from sklearn.preprocessing import StandardScaler
+import torch.nn.functional as F
 
 # Set workiiing directory to file location
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
-# Print start in a file
-with open('A.txt', 'a') as f:
-    print('Start', file=f)
+# Import custom modules
+import sys
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import random_split, DataLoader
 
-# parse the command line arguments
+sys.path.append("../src")
+from PipelineFunctions import (
+    load_data,
+    flatten_data,
+    ProtT5Embedder,
+    ProtXLNetEmbedder,
+    SequentialEmbedder,
+    CustomRandomForestClassifier,
+    plot_metrics,
+    SklearnCompatibleAttentionClassifier,
+    AttentionNetwork,
+    CNNAttentionNetwork,
+    ShapeLogger,
+    FocalLoss
+)
+
+# endregion _________________________________________________________________________________________________________________________
+
+# region Argparse and logging setup_________________________________________________________________________________________________
+# Parse the command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--embedder', type=str, choices=['prott5', 'protxlnet'], default='prott5', help='Embedder to use')
-parser.add_argument('--fine_tune', action='store_true', help='Whether to fine-tune the embedder')
-parser.add_argument('--oversampling', type=str, choices=['smote', 'adasyn', 'none'], default='none', help='Oversampling technique to use for imbalanced data')
-parser.add_argument('--estimator', type=str, choices=['logreg', 'rf', 'transformer'], default='logreg', help='Final estimator to use')
-# parser.add_argument('--load_embedder', action='store_true', help='Whether to load pre-trained parameters for the embedder')
-# parser.add_argument('--load_estimator', action='store_true', help='Whether to load pre-trained parameters for the final estimator')
-parser.add_argument('--train', action='store_true', help='Whether to train the whole model')
-parser.add_argument('--grid_search', action='store_true', help='Whether to perform grid search for the pipeline')
-parser.add_argument('--param_grid', type=str, default='{}', help='Parameter grid for the grid search as a string')
-parser.add_argument('--predict', type=str, help='Specify the pre-trained model to use to predict on the given data')
-parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for fine-tuning the embedder')
-parser.add_argument('--steps', type=int, default=10, help='Number of steps to train the embedder before freezing the parameters')
-parser.add_argument('--lr_embedder', type=float, default=0.01, help='Learning rate for the embedder')
-parser.add_argument('--lr_fine_tuned', type=float, default=0.001, help='Learning rate for the fine-tuned model')
-parser.add_argument('--batch_size', type=int, default=3, help='Batch size for embedding the data')
-parser.add_argument('--device', type=str, default='cuda:0', help='Device to use for the models')
-parser.add_argument('--debug', action='store_true', help='Whether to enable debug logging')
-parser.add_argument('--quick', action='store_true', help='Run only on the first batch')
-parser.add_argument('--SP', type=str, choices=['parallel', 'sequential'], default='sequential', help='Whether to embed the sequences in parallel or sequentially')
+parser.add_argument(
+    "--embedder",
+    type=str,
+    choices=["prott5", "protxlnet"],
+    default="prott5",
+    help="Embedder to use",
+)
+parser.add_argument(
+    "--save_embeddings",
+    action="store_true",
+    help="Whether to save the embeddings to a file",
+)
+parser.add_argument(
+    "--load_embeddings",
+    action="store_true",
+    help="Whether to load the embeddings from a file",
+)
+parser.add_argument(
+    "--self_attention",
+    action="store_true",
+    help="Whether to use self-attention in the AttentionNetwork",
+)
+parser.add_argument(
+    "--fine_tune", action="store_true", help="Whether to fine-tune the embedder"
+)
+parser.add_argument(
+    "--oversampling",
+    type=str,
+    choices=["smote", "adasyn", "none"],
+    default="none",
+    help="Oversampling technique to use for imbalanced data",
+)
+parser.add_argument(
+    "--classifier",
+    type=str,
+    choices=["rf", "crf", "attention"],
+    default="logreg",
+    help="Final classifier to use",
+)
+parser.add_argument(
+    "--cnn",
+    action="store_true",
+    help="Whether to use a CNN in the AttentionNetwork",
+)
+parser.add_argument(
+    "--train", action="store_true", help="Whether to train the whole model"
+)
+parser.add_argument(
+    "--grid_search",
+    action="store_true",
+    help="Whether to perform grid search for the pipeline",
+)
+parser.add_argument(
+    "--inner_splits",
+    type=int,
+    default=3,
+    help="Number of splits for the inner cross-validation",
+)
+parser.add_argument(
+    "--outer_splits",
+    type=int,
+    default=3,
+    help="Number of splits for the outer cross-validation",
+)
+parser.add_argument(
+    "--param_grid",
+    type=str,
+    default="{}",
+    help="Parameter grid for the grid search as a string",
+)
+parser.add_argument(
+    "--predict",
+    type=str,
+    default=None,
+    help="Specify the pre-trained model to use to predict on the given data",
+)
+parser.add_argument(
+    "--epochs",
+    type=int,
+    default=10,
+    help="Number of epochs for fine-tuning the embedder",
+)
+parser.add_argument(
+    "--steps",
+    type=int,
+    default=10,
+    help="Number of steps to train the embedder before freezing the parameters",
+)
+parser.add_argument(
+    "--batch_size", type=int, default=3, help="Batch size for embedding the data"
+)
+parser.add_argument(
+    "--device", type=str, default="cuda:0", help="Device to use for the models"
+)
+parser.add_argument(
+    "--debug", action="store_true", help="Whether to enable debug logging"
+)
+parser.add_argument("--quick", action="store_true", help="Run only on the first batch")
+parser.add_argument(
+    "--SP",
+    type=str,
+    choices=["parallel", "sequential"],
+    default="sequential",
+    help="Whether to embed the sequences in parallel or sequentially",
+)
+parser.add_argument("--logfile", type=str, default="log.txt", help="Log file name")
 args = parser.parse_args()
 
-# Print args parsed in a file
-with open('A.txt', 'a') as f:
-    print(args, file=f)
-
-def load_data(df_path, quick, splits=dict()):
-    if not os.path.exists(df_path):
-        raise FileNotFoundError(f'{df_path} does not exist')
-    # If quick is True, load the test df
-    if quick:
-        df_dir = os.path.join('..', 'data', 'interim')
-        df = pd.read_pickle(os.path.join(df_dir, 'test_df.pkl'))
-    else:
-        df = pd.read_pickle(df_path)
-        # Sort by length of 'sequence_phage' and 'sequence_k12' columns
-        # It reduces the number of padding residues needed
-        df.sort_values(by=['sequence_phage', 'sequence_k12'], key=lambda x: x.str.len(), ascending=False, inplace=True)
-
-        # Reset the index to make it contiguous
-        df.reset_index(drop=True, inplace=True)
-
-    # Return X, y columns as numpy arrays
-    return df[['sequence_phage', 'sequence_k12']].values, df['pair'].values
-
-
-# define the custom embedder classes
-class BaseEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name, device='cuda:0', fine_tune=False, num_epochs=1, num_steps=0, learning_rate=1e-3,org='phage'):
-        # Set device and check if available
-        if device == 'cuda:0' and not torch.cuda.is_available():
-            raise RuntimeError('CUDA is not available')
-            
-        self.device = device
-        self.fine_tune = fine_tune
-        self.num_epochs = num_epochs
-        self.num_steps = num_steps
-        self.learning_rate = learning_rate
-        self.model_name = model_name
-        # Load tokenizer and model
-        self.load_model_and_tokenizer()
-        # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
-        self.model.full() if self.device=='cpu' else self.model.half()
-        self.model.eval() # set model to eval mode, we don't want to train it
-
-        self.org = org
-        
-    def load_model_and_tokenizer(self):
-        raise NotImplementedError
-    
-    def fit(self, X, y=None):
-        self.device = torch.device(self.device)
-
-        if self.fine_tune:
-            # Convert X to a list if it is not already a list
-            if not isinstance(X, list):
-                X = X.tolist()
-            # Flatten X to be a list of strings
-            X = [item[0] for item in X]
-            # Print X shape and first three rows to file
-            with open('A.txt', 'a') as f:
-                print('X shape', len(X), len(X[0]), file=f)
-                print('X first three rows', X[:3], file=f)
-            self.model.train() # set model to training mode
-            optimizer = AdamW(self.model.parameters(), lr=self.learning_rate)
-            if self.num_steps == 0:
-                self.num_steps = len(X)
-            batch_size = len(X) // self.num_steps
-            for epoch in range(self.num_epochs):
-                for step in range(self.num_steps):
-                    # get the batch
-                    batch = X[step*batch_size:(step+1)*batch_size]
-                    # encode the batch
-                    token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
-                    input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
-                    attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
-                    outputs = self.model(input_ids, attention_mask=attention_mask)
-                    loss = outputs.loss
-                    loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-            self.model.eval() # set model back to eval mode
-        return self
-
-    def transform(self, X, batch_size=1):
-        with open('A.txt', 'a') as f:
-            print('org', self.org, file=f)
-        self.device = torch.device(self.device)
-        # Convert X to a list if it is not already a list
-        if not isinstance(X, list):
-            X = X.tolist()
-
-        # Flatten X to be a list of strings
-        X = [item[0] for item in X]
-
-        # Print X shape and first row to file
-        with open('A.txt', 'a') as f:
-            print('X shape', len(X), len(X[0]), file=f)
-            print('X first row', X[0], file=f)  
-        # initialize an empty list to store the embeddings
-        embeddings_list = []
-        # loop over the batches
-        for i in range(0, len(X), batch_size):
-            # Get the batch
-            batch = X[i:i+batch_size]
-            with open('A.txt', 'a') as f:
-                print('batch = C[i:i+batch_size]\n', batch, file=f)
-            # Each batch is a list of lists, so we need to flatten it
-            # batch = [item for sublist in batch for item in sublist]
-            # with open('A.txt', 'a') as f:
-            #     print('batch = [item for sublist in batch for item in sublist]\n', batch, file=f)
-
-            # encode the batch
-            token_encoding = self.tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding="longest")
-            with open('A.txt', 'a') as f:
-                print('token_encoding\n', token_encoding, file=f)
-            input_ids = torch.tensor(token_encoding['input_ids']).to(self.device)
-            with open('A.txt', 'a') as f:
-                print('input_ids\n', input_ids, file=f)
-            attention_mask = torch.tensor(token_encoding['attention_mask']).to(self.device)
-            with open('A.txt', 'a') as f:
-                print('attention_mask\n', attention_mask, file=f)
-            with torch.no_grad():
-                embeddings = self.model(input_ids, attention_mask)
-                # print the shape of the embeddings to file
-                with open('A.txt', 'a') as f:
-                    print('embeddings = self.model', file=f)
-                    # print('embeddings_shape: ', embeddings.shape, file=f)
-                    print('embeddings\n', embeddings, file=f)
-
-                for batch_index in range(len(batch)):
-                    emb = embeddings.last_hidden_state[batch_index, :len(batch[batch_index])]
-                    emb = emb.mean(dim=0).detach().cpu().numpy().squeeze()
-                    # Wrap the 1D array into a 2D array
-                    emb = emb.reshape(1, -1)
-                    # print the shape of the embeddings to file
-                    with open('A.txt', 'a') as f:
-                        # print('emb_shape: ', emb.shape, file=f)
-                        print('emb\n', emb, file=f)
-                    # append the embeddings to the list
-                    embeddings_list.append(emb)
-            with open('A.txt', 'a') as f:
-                print('embeddings_list\n', embeddings_list, file=f)
-        # concatenate the list to an array
-        embeddings_array = np.concatenate(embeddings_list, axis=0)
-        with open('A.txt', 'a') as f:
-            print('embeddings_array\n', embeddings_array, file=f)
-        return embeddings_array
-
-class ProtT5Embedder(BaseEmbedder):
-    def load_model_and_tokenizer(self):
-        self.tokenizer = T5Tokenizer.from_pretrained(self.model_name, do_lower_case=False)
-        self.model = T5EncoderModel.from_pretrained(self.model_name).to(self.device)
-
-class ProtXLNetEmbedder(BaseEmbedder):
-    def load_model_and_tokenizer(self):
-        self.tokenizer = XLNetTokenizer.from_pretrained(self.model_name, do_lower_case=False)
-        self.model = XLNetModel.from_pretrained(self.model_name).to(self.device)
-
-class SequentialEmbedder(BaseEstimator, TransformerMixin):
-    def __init__(self, embedder_phage, embedder_bacteria):
-        self.embedder_phage = embedder_phage
-        self.embedder_bacteria = embedder_bacteria
-
-    def fit(self, X, y=None):
-        # Fit the first embedder
-        self.embedder_phage.fit(X[:, 0], y)
-        # Fit the second embedder
-        self.embedder_bacteria.fit(X[:, 1], y)
-        return self
-
-    def transform(self, X):
-        # Transform the first column
-        embeddings_phage = self.embedder_phage.transform(X[:, 0])
-        # Transform the second column
-        embeddings_bacteria = self.embedder_bacteria.transform(X[:, 1])
-        # Concatenate the results
-        return np.concatenate([embeddings_phage, embeddings_bacteria], axis=1)
-
-
-# Print class defined in a file
-with open('A.txt', 'a') as f:
-    print('Classes defined', file=f)
-
-# create the pipeline
-if args.embedder == 'prott5':
-    embedder_phage = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device)
-    embedder_bacteria = ProtT5Embedder('Rostlab/prot_t5_xl_half_uniref50-enc', fine_tune=args.fine_tune, device=args.device, org='bacteria')
-elif args.embedder == 'protxlnet':
-    embedder_phage = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device)
-    embedder_bacteria = ProtXLNetEmbedder('Rostlab/prot_xlnet', fine_tune=args.fine_tune, device=args.device, org='bacteria')
-
-# Get the column indices for the features you want to transform
-sequence_phage_col_index = 0
-sequence_k12_col_index = 1
-
-if args.SP == 'parallel':
-    column_transformer = ColumnTransformer(
-        transformers=[
-            ('embedder_phage', embedder_phage, [sequence_phage_col_index]),
-            ('embedder_bacteria', embedder_bacteria, [sequence_k12_col_index]),
-        ],
-        remainder='drop'  # drop any columns not specified in transformers
-    )
-elif args.SP == 'sequential':
-    column_transformer = SequentialEmbedder(embedder_phage, embedder_bacteria)
-
-# if args.load_embedder:
-#     # load pre-trained parameters for the embedder
-#     embedder.load_state_dict(torch.load('embedder.pth'))
-#     embedder.eval()
-
-if args.estimator == 'logreg':
-    estimator = LogisticRegression()
-elif args.estimator == 'rf':
-    estimator = RandomForestClassifier()
-# elif args.estimator == 'transformer':
-#     # use a transformer model as the final estimator
-#     estimator = TransformerClassifier(device=args.device)
-
-# if args.load_estimator:
-#     # load pre-trained parameters for the final estimator
-#     estimator = joblib.load(args.estimator + '.pkl')
-
-if args.oversampling == 'smote':
-    # use SMOTE for imbalanced data
-    pipe = ImbPipeline([
-        ('column_transformer', column_transformer),
-        ('smote', SMOTE()),
-        ('estimator', estimator)
-    ])
-elif args.oversampling == 'adasyn':
-    # use ADASYN for imbalanced data
-    pipe = ImbPipeline([
-        ('column_transformer', column_transformer),
-        ('adasyn', ADASYN()),
-        ('estimator', estimator)
-    ])
-else:
-    # do not use any oversampling technique
-    pipe = Pipeline([
-        ('column_transformer', column_transformer),
-        ('estimator', estimator)
-    ])
-
-# Print pipeline defined in a file
-with open('A.txt', 'a') as f:
-    print('Pipeline defined', file=f)
-
-# create a logger object
-logger = logging.getLogger('pipeline')
-# set the level of logging
+# Define log file and add an empty line
+LOG_FILENAME = os.path.join("..", "logs", args.logfile)
+with open(LOG_FILENAME, "a") as f:
+    f.write("\n")
+# Create a logger object
+logger = logging.getLogger("Pipeline")
 if args.debug:
-    # enable debug logging if specified in the command line
     logger.setLevel(logging.DEBUG)
 else:
-    # otherwise use info logging
     logger.setLevel(logging.INFO)
-# create a file handler object
-file_handler = logging.FileHandler('log.txt', 'a')
-# set the format of logging
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# add the formatter to the file handler
+file_handler = logging.FileHandler(LOG_FILENAME, "a")
+formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
 file_handler.setFormatter(formatter)
-# add the file handler to the logger
 logger.addHandler(file_handler)
-# log the pipeline options
-logger.info(f'Pipeline options: embedder={args.embedder}, fine_tune={args.fine_tune}, estimator={args.estimator}, train={args.train}, grid_search={args.grid_search}, param_grid={args.param_grid}, epochs={args.epochs}, steps={args.steps}, lr_embedder={args.lr_embedder}, lr_fine_tuned={args.lr_fine_tuned}, batch_size={args.batch_size}, device={args.device}, debug={args.debug}, quick={args.quick}, SP={args.SP}')
+logger.info("NEW RUN")
 
-# load the data
-INPUT_FOLDER = os.path.join('..', 'data', 'interim')
-DATA_PATH = os.path.join(INPUT_FOLDER, '2_model_df.pkl')
-splits = {
-    'inner': 3,
-    'outer': 3
-}
+# Log the pipeline options
+logger.info(
+    f"Pipeline args: \
+    embedder={args.embedder}, \
+    fine_tune={args.fine_tune}, \
+    classifier={args.classifier}, \
+    train={args.train}, \
+    grid_search={args.grid_search}, \
+    param_grid={args.param_grid}, \
+    predict={args.predict}, \
+    epochs={args.epochs}, \
+    steps={args.steps}, \
+    batch_size={args.batch_size}, \
+    device={args.device}, \
+    debug={args.debug}, \
+    quick={args.quick}, \
+    SP={args.SP}"
+)
+# endregion _________________________________________________________________________________________________________________________
 
-X, y = load_data(DATA_PATH, args.quick, splits)
-# log the data shape
-logger.info(f'Data shape: X={X.shape}, y={y.shape}')
+# region PIPELINE_______________________________________________________________________________________________________________________
+n_jobs = -1  # -1 means use all processors during grid search
+timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+MODELS_DIR = os.path.join("..", "models")
+model_directory = os.path.join(MODELS_DIR, timestamp)
+os.makedirs(model_directory)
 
-# perform nested cross-validation
-param_grid = eval(args.param_grid) # convert the string to a dictionary
-# if args.grid_search:
-#     # perform grid search for the pipeline
-#     logger.debug('Performing grid search for the pipeline')
-#     grid = GridSearchCV(pipe, param_grid, cv=5)
-#     scores = cross_val_score(grid, X, y, cv=5)
-#     # log the best parameters and score from the grid search
-#     if hasattr(grid, 'best_params_'):
-#         best_params = grid.best_params_
-#     else:
-#         best_params = grid.best_estimator_.get_params()
-#     logger.debug(f'Best parameters: {best_params}')
-#     logger.debug(f'Best score: {grid.best_score_}')
-# else:
-#     # use the default parameters for the pipeline
-#     logger.debug('Using the default parameters for the pipeline')
-#     scores = cross_val_score(pipe, X, y, cv=5)
+scoring = {
+    "accuracy": make_scorer(accuracy_score),
+    "precision": make_scorer(precision_score),
+    "recall": make_scorer(recall_score),
+    "f1": make_scorer(f1_score),
+    "roc_auc": make_scorer(roc_auc_score, needs_proba=True),
+}  # `needs_proba=True` is for scorers that require probability outputs, like roc_auc
+refit = "f1"
 
-# # log the nested cross-validation scores and the mean score
-# logger.info(f'Nested cross-validation scores: {scores}')
-# logger.info(f'Mean score: {scores.mean()}')
+# Define the embedder
+if args.classifier == "attention":
+    prot = False
+else:
+    prot = True
+if args.embedder == "prott5":
+    emb_name = 'embeddings_T5'
+    embedder_phage = ProtT5Embedder(
+        "Rostlab/prot_t5_xl_half_uniref50-enc",
+        fine_tune=args.fine_tune,
+        device=args.device,
+        debug=args.debug,
+        prot=prot,
+    )
+    embedder_bacteria = ProtT5Embedder(
+        "Rostlab/prot_t5_xl_half_uniref50-enc",
+        fine_tune=args.fine_tune,
+        device=args.device,
+        org="bacteria",
+        debug=args.debug,
+        prot=prot,
+    )
+elif args.embedder == "protxlnet":
+    emb_name = 'embeddings_XL'
+    embedder_phage = ProtXLNetEmbedder(
+        "Rostlab/prot_xlnet",
+        fine_tune=args.fine_tune,
+        device=args.device,
+        debug=args.debug,
+        prot=prot,
+    )
+    embedder_bacteria = ProtXLNetEmbedder(
+        "Rostlab/prot_xlnet",
+        fine_tune=args.fine_tune,
+        device=args.device,
+        org="bacteria",
+        debug=args.debug,
+        prot=prot,
+    )
 
+# Sequential or parallel embedder for phage and bacteria
+if args.SP == "sequential":
+    pair_embedder = SequentialEmbedder(embedder_phage, embedder_bacteria, prot=prot)
+elif args.SP == "parallel":
+    column_indices = {"sequence_phage": 0, "sequence_k12": 1}
+    pair_embedder = ColumnTransformer(
+        transformers=[
+            ("embedder_phage", embedder_phage, [column_indices["sequence_phage"]]),
+            ("embedder_bacteria", embedder_bacteria, [column_indices["sequence_k12"]]),
+        ],
+        remainder="drop",
+    )  # drop any columns not specified in transformers
 
+# Define oversampling technique
+if args.oversampling == "smote":
+    oversampling = SMOTE()
+elif args.oversampling == "adasyn":
+    oversampling = ADASYN()
+else:
+    oversampling = None
+
+# Define the classifier
+if args.classifier == "rf":
+    classifier = RandomForestClassifier()
+    if not args.grid_search:
+        classifier.set_params(n_estimators=100, max_features="log2", min_samples_leaf=3, min_samples_split=2)
+elif args.classifier == "crf":
+    classifier = CustomRandomForestClassifier()
+elif args.classifier == "attention":
+    # TODO: if there will be any different length of a single sample, consider the various cases when defining input_dim
+    input_dim = 1024
+    if args.cnn:
+        model = CNNAttentionNetwork(input_dim, self_attention=args.self_attention)
+    else:
+        model = AttentionNetwork(input_dim, self_attention=args.self_attention)
+    classifier = SklearnCompatibleAttentionClassifier(
+        model, model_directory, scoring=scoring, refit=refit
+    )  # TODO: add lr, batch_size and epochs____________________________________________________________
+    n_jobs = 1  # AttentionNetwork is not picklable, so n_jobs must be 1
+
+    # Define the pipeline
+if oversampling is not None:
+    pipe = ImbPipeline([("oversampling", oversampling),
+                        ("shape_logger", ShapeLogger("oversampling")),
+                        ("classifier", classifier),])
+else:
+    pipe = Pipeline([("classifier", classifier)])
+# endregion _________________________________________________________________________________________________________________________
+
+# region Load data and embed________________________________________________________________________________________________________
+# Load data
+INPUT_FOLDER = os.path.join("..", "data", "interim")
+DATA_PATH = os.path.join(INPUT_FOLDER, "2_model_df.pkl")
+X, y = load_data(DATA_PATH, args.quick, args.debug)
+logger.info(f"LOAD DATA\nData shape: X={X.shape}, y={y.shape}")
+logger.debug(f"X[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}")
+
+# Embed data
+logger.debug("EMBED DATA")
+EMB_FILE = f'{emb_name}_prot.pt' if prot else f'{emb_name}_res.pt'
+if args.load_embeddings:
+    try:
+        if os.path.exists(os.path.join(INPUT_FOLDER, EMB_FILE)):
+            logger.info(f"Loading embeddings from file: {EMB_FILE}")
+            X = torch.load(os.path.join(INPUT_FOLDER, EMB_FILE))
+            logger.info(f"Embeddings loaded from file: {EMB_FILE}")
+        else:
+            X = pair_embedder.transform(X, batch_size=args.batch_size)
+    except Exception as e:
+        logger.error(f"Error while loading embeddings: {e}")
+        sys.exit(1)
+else:
+    logger.info("Embedding data")
+    X = pair_embedder.transform(X, batch_size=args.batch_size)
+    if prot:
+        logger.debug(
+            f"FINISHED EMBEDDING:\nData shape after embedding: X={X.shape}, y={y.shape}\nX[:5]:\n {X[:5]}\ny[:5]:\n {y[:5]}"
+        )
+    else:
+        logger.debug('FINISHED EMBEDDING')
+if args.save_embeddings:
+    try:
+        logger.info("Saving embeddings to file")
+        torch.save(X, os.path.join(INPUT_FOLDER, EMB_FILE))
+    except Exception as e:
+        logger.error(f"Error while saving embeddings: {e}")
+# endregion _________________________________________________________________________________________________________________________
+
+# region Grid search and nested cross-validation ___________________________________________________________________________________
+
+outer_predictions = dict()
+
+# (Nested) cross-validation
+param_grid = eval(args.param_grid)  # convert the string to a dictionary
+if not os.path.exists(MODELS_DIR):
+    os.makedirs(MODELS_DIR)
 if args.train:
-    best_outer_score = float('-inf')  # Initialize with a very small value for maximization
-    best_model = None
-    best_params = None
+    if args.cnn:
+        # Split X in train and test dataset
+        max_size = max(arr.shape[0] for arr in X)
+        X = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X]  # Pad arrays to same size, so that they can be converted to a tensor
 
-    # Outer cross-validation
-    outer_cv = StratifiedKFold(n_splits=splits['outer'], shuffle=True, random_state=42)
-    outer_scores = []
+        # Split dataset into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-    for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+        # Normalize the data
+        X_train = np.array(X_train)
+        X_test = np.array(X_test)
+        X_train_reshaped = X_train.reshape(-1, X_train.shape[-1])
+        X_test_reshaped = X_test.reshape(-1, X_test.shape[-1])
 
+        scaler = StandardScaler()
+        X_train_normalized = scaler.fit_transform(X_train_reshaped)
+        X_test_normalized = scaler.transform(X_test_reshaped)
+
+        X_train_normalized = X_train_normalized.reshape(X_train.shape)
+        X_test_normalized = X_test_normalized.reshape(X_test.shape)
+
+        # Convert numpy arrays to tensors
+        X_train_tensor = torch.tensor(X_train_normalized, dtype=torch.float32)
+        X_test_tensor = torch.tensor(X_test_normalized, dtype=torch.float32)
+        y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
+        y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
+
+        # Split training dataset into training and validation sets
+        train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
+        train_size = int(0.8 * len(train_dataset))
+        val_size = len(train_dataset) - train_size
+        train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+
+        # Define dataloaders
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+        test_dataset = torch.utils.data.TensorDataset(X_test_tensor, y_test_tensor)
+        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+        # Initialize the model, loss function, and optimizer
+        model = CNNAttentionNetwork(input_dim, self_attention=args.self_attention)
+
+        # Define the class weights for the positive and negative classes
+        weight_negative = 1.0  # Weight for the negative class
+        weight_positive = 10.0  # Weight for the positive class
+
+        # Instantiate the BCE loss function with class weights
+        # class_weights = torch.tensor([weight_negative, weight_positive])
+        # weight = torch.zeros_like(target)
+        # weight[target==0] = 1
+        # weight[target==1] = 10
+        # criterion = torch.nn.BCELoss(weight=class_weights)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+
+
+        def train(model, train_loader, val_loader, optimizer, num_epochs=800, patience=50, early_stopping=True):
+            train_loss = []  # List to store the training loss
+            val_f1_scores = []  # List to store the validation F1 scores
+            best_val_f1 = -np.inf
+            early_stopping_counter = 0
+            device = 'cuda:0'
+
+            for epoch in range(num_epochs):
+                model.train()
+                running_loss = 0.0
+                for inputs, labels in train_loader:
+                    # optimizer.zero_grad()
+                    # outputs = model(inputs)
+                    # labels = labels.to(outputs.device)  # Move labels tensor to the same device as outputs
+                    # # labels = labels.view(-1, 1)  # Reshape labels tensor to match the shape of outputs tensor
+                    # labels = labels.long()  # Convert labels to index tensor
+                    # labels = F.one_hot(labels, num_classes=2)  # Convert labels to one-hot binary
+                    # logger.info(f"Outputs: {outputs}")
+                    # logger.info(f"Labels: {labels}")
+                    # loss = criterion(outputs[:,1], labels.float())
+                    # loss.backward()
+                    # optimizer.step()
+                    # running_loss += loss.item() * inputs.size(0)
+
+                    optimizer.zero_grad()
+                    inputs = inputs.to(device)  # Move inputs to device
+                    labels = labels.to(device) # Move labels to device and convert to float tensor
+
+                    # Calculate class weights dynamically
+                    class_weights = torch.zeros_like(labels, dtype=torch.float)
+                    class_weights[labels == 0] = 1  # Weight for class 0
+                    class_weights[labels == 1] = 10  # Weight for class 1
+
+                    outputs = model(inputs)
+                    logger.info(f"Outputs: {outputs}")
+                    logger.info(f"Labels: {labels}")
+
+                    criterion = torch.nn.BCELoss(weight=class_weights)
+                    # criterion = FocalLoss(alpha=10, gamma=2)
+                    loss = criterion(outputs.squeeze(), labels.float())  # Use BCELoss
+                    loss.backward()
+                    optimizer.step()
+                    running_loss += loss.item() * inputs.size(0)
+
+                # Validate the model
+                model.eval()
+                val_predictions = []
+                val_targets = []
+                for inputs, labels in val_loader:
+                    outputs = model(inputs)
+                    predictions = [0 if output < 0.5 else 1 for output in outputs]
+                    val_predictions.extend(predictions)
+                    val_targets.extend(labels.tolist())
+
+                val_f1 = f1_score(val_targets, val_predictions)
+                logger.info(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader.dataset)}, Validation F1: {val_f1}")
+
+                train_loss.append(running_loss/len(train_loader.dataset))  # Append the training loss to the list
+                val_f1_scores.append(val_f1)  # Append the validation F1 score to the list
+
+                if early_stopping:
+                    if val_f1 > best_val_f1:
+                        best_val_f1 = val_f1
+                        early_stopping_counter = 0
+                    else:
+                        early_stopping_counter += 1
+                        if early_stopping_counter >= patience:
+                            logger.info(f"Early stopping at epoch {epoch+1}")
+                            break
+
+            # Save the training loss and validation F1 scores as pickle files
+            with open(os.path.join(model_directory, 'train_loss.pkl'), 'wb') as f:
+                pickle.dump(train_loss, f)
+            with open(os.path.join(model_directory, 'val_f1_scores.pkl'), 'wb') as f:
+                pickle.dump(val_f1_scores, f)
+
+        # test the model
+        def test(model, test_loader):
+            model.eval()
+            test_predictions = []
+            test_targets = []
+            outputs_list = []
+            for inputs, labels in test_loader:
+                outputs = model(inputs)
+                predictions = [0 if output < 0.5 else 1 for output in outputs]
+                test_predictions.extend(predictions)
+                test_targets.extend(labels.tolist())
+                outputs_list.append(outputs.detach().cpu().numpy())
+
+            test_f1 = f1_score(test_targets, test_predictions)
+            logger.info(f"Test F1: {test_f1}")
+
+            # Save test predictions and targets as pickle files
+            with open(os.path.join(model_directory, 'test_predictions.pkl'), 'wb') as f:
+                pickle.dump(test_predictions, f)
+            with open(os.path.join(model_directory, 'test_targets.pkl'), 'wb') as f:
+                pickle.dump(test_targets, f)
+            with open(os.path.join(model_directory, 'outputs.pkl'), 'wb') as f:
+                np.save(f, np.concatenate(outputs_list))
+
+        train(model, train_loader, val_loader, optimizer, num_epochs=800, early_stopping=False)
+        test(model, test_loader)
+    else:
+        logger.info("TRAINING THE WHOLE MODEL")
+        logger.debug(f'Inner splits: {args.inner_splits}, outer splits: {args.outer_splits}')
+        best_outer_score = float(
+            "-inf"
+        )  # Initialize with a very small value for maximization
+        best_model = None
+        best_params = None
+
+        # Outer cross-validation
+        outer_scores = []
+        outer_cv = StratifiedKFold(n_splits=args.outer_splits, shuffle=True, random_state=42)
+        cv_results_dict = dict()
+        best_dict = dict()
+        for fold, (train_index, test_index) in enumerate(outer_cv.split(X, y)):
+            logger.debug(f"Outer fold {fold+1}")
+            if prot:
+                X_train, X_test = X[train_index], X[test_index]
+            else:
+                X_train, X_test = [X[i] for i in train_index], [X[i] for i in test_index]
+                max_size = max(max(arr.shape[0] for arr in X_train), max(arr.shape[0] for arr in X_test))
+                X_train = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_train]  # Pad arrays to same size, so that they can be converted to a tensor
+                X_test = [np.pad(arr, ((0, max_size - arr.shape[0]), (0, 0)), mode='constant', constant_values=0) for arr in X_test]
+                X_train = np.array(X_train)
+                X_test = np.array(X_test)
+
+            y_train, y_test = y[train_index], y[test_index]
+            logger.info(
+                f"X_train[:5]:\n {X_train[:5]}\ny_train[:5]:\n {y_train[:5]}\nX_test[:5]:\n {X_test[:5]}\ny_test[:5]:\n {y_test[:5]}"
+            )
+
+            # Grid search and inner CV
+            if args.grid_search:
+                """
+                Inside grid.fit, all the hyperparameters combinations are tested.
+                For each combination, a stratified CV is performed on the training set.
+                Stratified means that the proportion of the classes is preserved in each fold.
+                The combination with the best score (folds average) is selected.
+                The selected combination of hyperparameters is then used to fit the pipeline on the whole training set.
+                This model is evaluated on the test set (i.e. 1 fold of the outer CV).
+                """
+                logger.debug("PERFORMING GRID SEARCH")
+                inner_cv = StratifiedKFold(n_splits=args.inner_splits, shuffle=True, random_state=42)
+                grid = GridSearchCV(
+                    pipe,
+                    param_grid,
+                    cv=inner_cv,
+                    scoring=scoring,
+                    refit=refit,
+                    verbose=3,
+                    n_jobs=n_jobs,
+                )
+                grid.fit(X_train, y_train)
+
+                # Save the results of the grid search
+                cv_results_dict[f"fold_{fold}"] = grid.cv_results_
+                best_dict[f"fold_{fold}"] = dict()
+                best_dict[f"fold_{fold}"]["best_score"] = grid.best_score_
+                best_dict[f"fold_{fold}"]["best_params"] = grid.best_params_
+                best_dict[f"fold_{fold}"]["best_index"] = grid.best_index_  # index of the best combination of hyperparameters
+                
+                logger.info(f"Best parameters for fold {fold}: {grid.best_params_}")
+                logger.info(f"Best {refit} score for fold {fold}: {grid.best_score_}")
+
+                outer_predictions[f"fold_{fold}"] = dict()
+                outer_predictions[f"fold_{fold}"]['y_test'] = y_test
+                outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
+                
+                # The best parameters are used to fit a new model - best_estimator_ - on the training set of the outer fold
+                # This model is evaluated on the test set of the outer fold, returning grid.score
+                if args.cnn:
+                    outer_predictions[f"fold_{fold}"]['y_proba'] = grid.predict_proba(X_test)
+                    y_pred = grid.predict(X_test)
+                    outer_score = f1_score(y_test, y_pred)
+                else:
+                    outer_score = grid.score(X_test, y_test) 
+                logger.info(f"Outer {refit} score for fold {fold} using the model trained on outer training with the best parameters: {outer_score}")
+                
+            # Fit the pipeline on the training data without grid search and inner CV
+            else:
+                pipe.fit(X_train, y_train)
+                outer_score = pipe.score(X_test, y_test)
+                outer_predictions[f"fold_{fold}"] = dict()
+                outer_predictions[f"fold_{fold}"]['y_test'] = y_test
+                outer_predictions[f"fold_{fold}"]['y_proba'] = pipe.predict_proba(X_test)
+
+            outer_scores.append(outer_score)
+
+            # Update best model
+            if outer_score > best_outer_score:
+                best_outer_score = outer_score
+                if args.grid_search:
+                    best_model = grid.best_estimator_
+                    best_outer_params = grid.best_params_
+
+        best_dict["best_outer_score"] = best_outer_score
+        best_dict["outer_scores"] = outer_scores
+        best_dict["mean_outer_score"] = np.mean(outer_scores)
         if args.grid_search:
-            # Inner cross-validation for grid search
-            inner_cv = StratifiedKFold(n_splits=splits['inner'], shuffle=True, random_state=42)
-            grid = GridSearchCV(pipe, param_grid, cv=inner_cv)
-            # Print train sets shapes on a file
-            with open('A.txt', 'a') as f:
-                print('X_train', X_train.shape, 'y_train', y_train.shape, file=f)
+            best_dict["best_outer_params"] = best_outer_params
 
-            grid.fit(X_train, y_train)
+        # Save the best model
+        if best_model is not None:
+            
+            model_name = f"Model_{timestamp}.pkl"
+            joblib.dump(best_model, os.path.join(model_directory, model_name))
+            # Save the results of the grid search as json files
+            if args.grid_search:
+                logger.info(f"Saving grid search results in {model_directory}")
+                joblib.dump(cv_results_dict, os.path.join(model_directory, "cv_results.pkl"))
+                joblib.dump(best_dict, os.path.join(model_directory, "best_dict.pkl"))
+                joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
+            
+                logger.info(f"Best parameters across all outer folds: {best_outer_params}")
+                # Save the best parameters to a file
+                with open("best_parameters.txt", "a") as f:
+                    f.write(f"Model: {model_name}\n")
+                    f.write(f"Embedder: {args.embedder}\n")
+                    f.write(f"Oversampling: {args.oversampling}\n")
+                    f.write(f"classifier: {args.classifier}\n")
+                    f.write(f"Hyperparameters: {best_outer_params}\n")
+                    f.write(f"Outer score achieved by the model: {best_outer_score}\n")
+                    f.write(f"All outer scores: {outer_scores}\n")
+                    f.write("Outer splits: " + str(args.outer_splits) + "\n")
+                    if args.grid_search:
+                        f.write(f'Inner splits: {str(args.inner_splits)}\n')
+                    f.write("\n")
+            else:
+                logger.info(f"Best model saved as: {model_name}")
+                joblib.dump(outer_predictions, os.path.join(model_directory, "outer_predictions.pkl"))
+                joblib.dump(outer_scores, os.path.join(model_directory, "best_dict.pkl"))
 
-            # Evaluate the best model on the test set
-            score = grid.score(X_test, y_test)
-            outer_scores.append(score)
+                with open("best_parameters.txt", "a") as f:
+                    f.write(f"Model: {model_name}\n")
+                    f.write(f"Embedder: {args.embedder}\n")
+                    f.write(f"Oversampling: {args.oversampling}\n")
+                    f.write(f"classifier: {args.classifier}\n")
+                    f.write(f"Outer score achieved by the model: {best_outer_score}\n")
+                    f.write(f"All outer scores: {outer_scores}\n")
+                    f.write("Outer splits: " + str(args.outer_splits) + "\n")
+                    f.write("\n")
 
-            # Log the best parameters and score from the grid search for this fold
-            logger.debug(f'Best parameters for fold {fold+1}: {grid.best_params_}')
-            logger.debug(f'Score for fold {fold+1}: {score}')
+            logger.info(f"Best score across all outer folds: {best_outer_score}")
+            logger.info(f"Best model saved as: {model_name}")
 
-            # Check if this model has a better score than the current best
-            if score > best_outer_score:
-                best_outer_score = score
-                best_model = grid.best_estimator_
-                best_params = grid.best_params_
 
         else:
-            # Fit the pipeline on the training data without grid search
-            pipe.fit(X_train, y_train)
+            logger.warning("No best model found.")
 
-            # Evaluate the pipeline on the test set
-            score = pipe.score(X_test, y_test)
-            outer_scores.append(score)
+        # Log the results of nested cross-validation
+        logger.info(
+            f"Nested cross-validation scores: {outer_scores}\nMean score: {np.mean(outer_scores)}"
+        )
 
-            # Log the score for this fold
-            logger.debug(f'Score for fold {fold+1}: {score}')
-
-    # Save the best model
-    if best_model is not None:
-        # Create a name for the best model based on configuration and timestamp
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        model_name = f'best_model_{args.embedder}_{"fine_tune" if args.fine_tune else "no_fine_tune"}_{args.oversampling}_{args.estimator}_{timestamp}.pkl'
-        joblib.dump(best_model, model_name)
-        logger.debug(f'Best parameters across all folds: {best_params}')
-        logger.debug(f'Best score across all folds: {best_outer_score}')
-        logger.debug(f'Best model saved as: {model_name}')
-    else:
-        logger.warning('No best model found.')
-
-    # Log the results of nested cross-validation
-    logger.debug(f'Nested cross-validation scores: {outer_scores}')
-    logger.debug(f'Mean score: {np.mean(outer_scores)}')
-
-# Load model
-# loaded_model = joblib.load('best_model.joblib')
-
-# Make predictions with the loaded model
-# predictions = loaded_model.predict(new_data)
-
+PREDICTIONS_DIR = os.path.join("..", "data", "predictions")
+if not os.path.exists(PREDICTIONS_DIR):
+    os.makedirs(PREDICTIONS_DIR)
 if args.predict:
-    loaded_model = joblib.load(args.predict)
+    loaded_model = joblib.load(os.path.join(MODELS_DIR, args.predict))
     predictions = loaded_model.predict(X)
-    # Save predictions in a file
-    np.savetxt('predictions.txt', predictions, fmt='%s')
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    predictions_file = f"predictions_{args.predict}_{timestamp}.txt"
+    np.savetxt(os.path.join(PREDICTIONS_DIR, predictions_file), predictions, fmt="%s")
 
-# Print end in a file
-with open('A.txt', 'a') as f:
-    print('End', file=f)
+# endregion _________________________________________________________________________________________________________________________
